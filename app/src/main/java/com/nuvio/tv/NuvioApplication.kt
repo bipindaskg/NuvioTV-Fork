@@ -97,7 +97,16 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
         super.onCreate()
         com.nuvio.tv.core.util.StartupLatencyTrace.coldOnce("app_injected")
         PluginRuntimeHooks.onApplicationCreate(this)
-        androidTvChannelSyncService.start()
+        // Boxes in the 1 GB class skip the launcher-channel sync: its periodic job, TvProvider writes and cache
+        // observers are background work the box cannot spare. Unknown memory (<= 0) keeps the sync.
+        val totalRamBytes = ActivityManager.MemoryInfo()
+            .also { getSystemService(ActivityManager::class.java)?.getMemoryInfo(it) }
+            .totalMem
+        if (com.nuvio.tv.core.player.BufferSizing.autoBufferMbForRam(totalRamBytes) !=
+            com.nuvio.tv.core.player.BufferSizing.BUFFER_1GB_BOX_MB
+        ) {
+            androidTvChannelSyncService.start()
+        }
         // Hydrate the AFR fps cache from disk (background load) so cold
         // rewatches take the preflight hit path (switch before prepare).
         com.nuvio.tv.core.player.FrameRateUtils.initFrameRateCachePersistence(this)
