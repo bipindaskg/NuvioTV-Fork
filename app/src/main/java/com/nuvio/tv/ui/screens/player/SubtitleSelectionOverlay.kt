@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -74,6 +75,7 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.res.stringResource
 import kotlin.math.roundToInt
 import androidx.tv.material3.Card
@@ -273,6 +275,12 @@ internal fun SubtitleSelectionOverlay(
         }
     }
 
+    // Wide enough to show long subtitle file names: ~55% of the screen, never narrower than the old
+    // fixed width and capped so it doesn't swallow the picture on big screens.
+    val minPanelWidth = if (LocalV2Appearance.current != null) 400.dp else 320.dp
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    val panelWidth = (screenWidthDp * 0.55f).dp.coerceIn(minPanelWidth, 720.dp)
+
     PlayerOverlayScaffold(
         visible = visible,
         onDismiss = onDismiss,
@@ -282,7 +290,7 @@ internal fun SubtitleSelectionOverlay(
     ) {
         Column(
             modifier = Modifier
-                .width(if (LocalV2Appearance.current != null) 400.dp else 320.dp)
+                .width(panelWidth)
                 .align(Alignment.BottomEnd)
                 .heightIn(max = 620.dp)
                 .v2PlayerPanel()
@@ -386,7 +394,8 @@ internal fun SubtitleSelectionOverlay(
                             PlayerPanelRow(
                                 title = if (variant != null) "$variant - ${item.sourceLabel}" else item.sourceLabel,
                                 subtitle = item.meta,
-                                titleMaxLines = 2,
+                                titleMaxLines = 3,
+                                subtitleMaxLines = 2,
                                 selected = item.id == currentSelectedOptionId,
                                 onClick = { select(item) },
                                 onLongClick = {
