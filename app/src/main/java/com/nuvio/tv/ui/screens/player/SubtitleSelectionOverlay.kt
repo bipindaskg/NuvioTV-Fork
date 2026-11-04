@@ -280,6 +280,10 @@ internal fun SubtitleSelectionOverlay(
     val minPanelWidth = if (LocalV2Appearance.current != null) 400.dp else 320.dp
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
     val panelWidth = (screenWidthDp * 0.55f).dp.coerceIn(minPanelWidth, 720.dp)
+    // Keep the panel in the top part of the screen (~60% of the height) so the bottom of the
+    // picture stays clear and the applied subtitle is visible while you switch files.
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp
+    val panelMaxHeight = (screenHeightDp * 0.60f).dp.coerceIn(240.dp, 620.dp)
 
     PlayerOverlayScaffold(
         visible = visible,
@@ -291,8 +295,8 @@ internal fun SubtitleSelectionOverlay(
         Column(
             modifier = Modifier
                 .width(panelWidth)
-                .align(Alignment.BottomEnd)
-                .heightIn(max = 620.dp)
+                .align(Alignment.TopEnd)
+                .heightIn(max = panelMaxHeight)
                 .v2PlayerPanel()
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
