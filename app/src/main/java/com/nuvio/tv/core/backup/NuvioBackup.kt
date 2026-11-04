@@ -33,7 +33,7 @@ data class RestoreSummary(val datastoreFiles: Int, val pluginFiles: Int, val oth
 
 /**
  * Backup and restore of everything the app keeps in its private files:
- *  - `datastore/*.preferences_pb` : settings, add-ons, collections, watch progress (Continue Watching), library...
+ *  - the datastore folder (all .preferences_pb files): settings, add-ons, collections, watch progress (Continue Watching), library...
  *  - `plugin_code*`               : plugin scripts
  *  - `cw_enrichment/`             : Continue Watching snapshots
  *

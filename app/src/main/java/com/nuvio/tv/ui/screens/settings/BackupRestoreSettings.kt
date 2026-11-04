@@ -114,10 +114,16 @@ internal fun BackupRestoreCard(modifier: Modifier = Modifier) {
                 "Without storage permission the Downloads/NuvioBackup folder can't be used."
             )
         }
+        Unit
     }
 
     val documentPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-        if (uri != null) stageFrom(uri) else ui = BackupUi.Idle
+        if (uri != null) {
+            stageFrom(uri)
+        } else {
+            ui = BackupUi.Idle
+        }
+        Unit
     }
 
     fun withStoragePermission(action: () -> Unit) {
