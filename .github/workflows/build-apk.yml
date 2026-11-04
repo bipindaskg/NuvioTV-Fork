@@ -43,6 +43,13 @@ jobs:
             touch local.properties
           fi
 
+          # Simkl client ID (public value) so Simkl sign-in works in this build.
+          echo >> local.properties
+          grep -q '^SIMKL_CLIENT_ID=' local.properties || {
+            echo "SIMKL_CLIENT_ID=7e7ce760063b730567dad8f435bce0ed65099514eace81c6eda5efa10f16e176" >> local.properties
+            echo "SIMKL_APP_NAME=nuvio" >> local.properties
+          }
+
           if [ -n "$LOCAL_DEV_PROPERTIES_BASE64" ]; then
             printf '%s' "$LOCAL_DEV_PROPERTIES_BASE64" | base64 --decode > local.dev.properties
           else
