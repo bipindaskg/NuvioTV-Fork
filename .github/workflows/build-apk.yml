@@ -69,6 +69,17 @@ jobs:
             echo "NUVIO_RELEASE_STORE_PASSWORD=android"
           } >> "$GITHUB_ENV"
 
+      - name: Restore fixed debug keystore
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
+            mkdir -p "$HOME/.android"
+            printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 --decode > "$HOME/.android/debug.keystore"
+          else
+            echo "No DEBUG_KEYSTORE_BASE64 secret set; a new debug key will be generated for this build."
+          fi
+
       - name: Build fullDebug APK
         run: ./gradlew :app:assembleFullDebug --stacktrace
 
