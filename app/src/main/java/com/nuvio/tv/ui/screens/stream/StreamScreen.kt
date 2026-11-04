@@ -492,6 +492,7 @@ fun StreamScreen(
                         sourceChips = uiState.sourceChips,
                         allStreams = uiState.allStreams,
                         selectedAddon = uiState.selectedAddonFilter,
+                        resumeText = resumeText,
                         listState = sidebarListState,
                         focusRequesters = sidebarFocusRequesters,
                         onAddonSelected = { viewModel.onEvent(StreamScreenEvent.OnAddonFilterSelected(it)) },
@@ -510,7 +511,6 @@ fun StreamScreen(
                 // Right side - Streams container
                 RightStreamSection(
                     isLoading = uiState.isLoading,
-                    resumeText = resumeText,
                     error = uiState.error,
                     streams = uiState.filteredStreams,
                     partyFingerprint = viewModel.partyFingerprint,
@@ -838,6 +838,7 @@ private fun ProviderSidebar(
     sourceChips: List<SourceChipItem>,
     allStreams: List<Stream>,
     selectedAddon: String?,
+    resumeText: String?,
     listState: LazyListState,
     focusRequesters: MutableMap<String, FocusRequester>,
     onAddonSelected: (String?) -> Unit,
@@ -866,10 +867,16 @@ private fun ProviderSidebar(
             modifier = Modifier.fillMaxSize()
         ) {
             item(key = "refresh") {
-                RefreshFilterChip(
-                    onClick = onRefresh,
-                    isLoading = stillFetching
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RefreshFilterChip(
+                        onClick = onRefresh,
+                        isLoading = stillFetching
+                    )
+                    resumeText?.let { text ->
+                        Spacer(modifier = Modifier.width(NuvioTheme.spacing.md))
+                        StreamResumePill(text = text)
+                    }
+                }
             }
             item(key = "all") {
                 ProviderSidebarRow(
@@ -960,7 +967,6 @@ private const val FOCUS_WARM_SETTLE_MS = 500L
 @Composable
 private fun RightStreamSection(
     isLoading: Boolean,
-    resumeText: String?,
     error: String?,
     streams: List<Stream>,
     partyFingerprint: com.nuvio.tv.core.party.PartyFingerprint? = null,
@@ -1026,11 +1032,8 @@ private fun RightStreamSection(
     }
     Column(
         modifier = modifier
-            .padding(top = NuvioTheme.spacing.xxxl, end = NuvioTheme.spacing.xxxl, bottom = NuvioTheme.spacing.xxxl)
+            .padding(end = NuvioTheme.spacing.xxxl)
     ) {
-        resumeText?.let { text ->
-            StreamResumePill(text = text, modifier = Modifier.padding(bottom = NuvioTheme.spacing.sm))
-        }
         androidx.compose.animation.AnimatedVisibility(
             visible = enter,
             enter = fadeIn(animationSpec = tween(260)) +
@@ -1351,7 +1354,7 @@ private fun StreamsList(
         state = streamListState,
         modifier = Modifier
             .fillMaxSize()
-            .padding(NuvioTheme.spacing.lg)
+            .padding(horizontal = NuvioTheme.spacing.lg)
             .onFocusChanged { onFocusChanged(it.hasFocus) }
             .onKeyEvent { event ->
                 if (event.nativeKeyEvent.action != KeyEvent.ACTION_DOWN) return@onKeyEvent false
@@ -1375,7 +1378,7 @@ private fun StreamsList(
                 }
             },
         verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.md),
-        contentPadding = PaddingValues(start = NuvioTheme.spacing.sm, end = NuvioTheme.spacing.sm, top = NuvioTheme.spacing.sm, bottom = NuvioTheme.spacing.xxl)
+        contentPadding = PaddingValues(start = NuvioTheme.spacing.sm, end = NuvioTheme.spacing.sm, top = NuvioTheme.spacing.sm, bottom = NuvioTheme.spacing.sm)
     ) {
         itemsIndexed(streams, key = { index, _ ->
             streamKeys[index]
