@@ -88,6 +88,7 @@ jobs:
           fi
 
       - name: Build fullDebug APK
+        shell: bash
         env:
           DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
         run: |
@@ -95,7 +96,15 @@ jobs:
           if [ -n "$DEBUG_KEYSTORE_BASE64" ] && [ -f "$HOME/.android/debug.keystore" ]; then
             SIGN_ARGS="-Pandroid.injected.signing.store.file=$HOME/.android/debug.keystore -Pandroid.injected.signing.store.password=android -Pandroid.injected.signing.key.alias=androiddebugkey -Pandroid.injected.signing.key.password=android"
           fi
-          ./gradlew :app:assembleFullDebug --stacktrace $SIGN_ARGS
+          ./gradlew :app:assembleFullDebug --stacktrace $SIGN_ARGS 2>&1 | tee build.log
+
+      - name: Show compile errors
+        if: failure()
+        run: |
+          echo "---- Kotlin/Java errors ----"
+          grep -E '^e: |error:' build.log | head -25 | sed 's/^/::error::/' || true
+          echo "---- Gradle summary ----"
+          grep -A12 "What went wrong" build.log | head -30 || true
 
       - name: Show APK signing certificate
         continue-on-error: true
