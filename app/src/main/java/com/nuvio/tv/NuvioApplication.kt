@@ -93,6 +93,12 @@ class NuvioApplication : Application(), SingletonImageLoader.Factory {
         }
     }
 
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(base)
+        // Apply a restore staged from Settings > Advanced > Backup & restore, before any data store opens.
+        com.nuvio.tv.core.backup.NuvioBackup.applyPendingRestoreIfAny(base)
+    }
+
     override fun onCreate() {
         com.nuvio.tv.core.util.StartupLatencyTrace.coldOnce("app_create")
         super.onCreate()
