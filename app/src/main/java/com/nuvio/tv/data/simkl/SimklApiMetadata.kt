@@ -26,17 +26,25 @@ fun buildSimklApiUrl(
     return builder.build().toString()
 }
 
+const val SIMKL_FORM_CONTENT_TYPE = "application/x-www-form-urlencoded"
+
+/** Encodes key/value pairs as an application/x-www-form-urlencoded body. */
+fun simklFormBody(vararg pairs: Pair<String, String>): String = pairs.joinToString("&") { (key, value) ->
+    java.net.URLEncoder.encode(key, "UTF-8") + "=" + java.net.URLEncoder.encode(value, "UTF-8")
+}
+
 fun simklRequestHeaders(
     configuration: SimklApiConfiguration,
     accessToken: String? = null,
-    contentTypeJson: Boolean = false
+    contentTypeJson: Boolean = false,
+    contentType: String? = null
 ): Map<String, String> = buildMap {
     put("User-Agent", "$SIMKL_USER_AGENT_APP_NAME/${configuration.appVersion}")
     put("Accept", "application/json")
     accessToken?.trim()?.takeIf(String::isNotBlank)?.let { token ->
         put("Authorization", "Bearer $token")
     }
-    if (contentTypeJson) put("Content-Type", "application/json")
+    if (contentTypeJson) put("Content-Type", contentType ?: "application/json")
 }
 
 fun defaultSimklApiConfiguration(): SimklApiConfiguration = SimklApiConfiguration(

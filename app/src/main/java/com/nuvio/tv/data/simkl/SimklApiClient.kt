@@ -31,7 +31,9 @@ data class SimklApiRequest(
     val body: String = "",
     val requiresAuthentication: Boolean = true,
     val retryPolicy: SimklRetryPolicy = SimklRetryPolicy.TRANSIENT_FAILURES,
-    val scrobbleStopConflictIsSuccess: Boolean = false
+    val scrobbleStopConflictIsSuccess: Boolean = false,
+    /** Body content type; JSON unless an endpoint (the AUTH V2 ones) wants a form body. */
+    val contentType: String? = null
 )
 
 data class SimklRawHttpResponse(
@@ -70,7 +72,8 @@ class SimklApiClient(
     private val onUnauthorized: (SimklAuthorization) -> Unit,
     private val nowEpochMs: () -> Long = System::currentTimeMillis,
     private val sleep: suspend (Long) -> Unit = { delay(it) },
-    private val retryJitterMs: () -> Long = { Random.nextLong(RETRY_JITTER_BOUND_MS + 1L) }
+    private val retryJitterMs: () -> Long = { Random.nextLong(RETRY_JITTER_BOUND_MS + 1L) },
+    private val tokenRefresher: SimklTokenRefresher? = null
 ) {
     private val requestMutex = Mutex()
     private val json = Json { ignoreUnknownKeys = true }
@@ -96,7 +99,7 @@ class SimklApiClient(
                         (nowEpochMs() - queuedAtEpochMs).coerceAtLeast(0L)
                 )
             }
-            val requestAuthorization = if (request.requiresAuthentication) {
+            var requestAuthorization: SimklAuthorization? = if (request.requiresAuthentication) {
                 authorization()?.takeIf { it.accessToken.isNotBlank() }
                     ?.also { current ->
                         if (expectedAuthScope != null && current.scope != expectedAuthScope) {
@@ -111,10 +114,18 @@ class SimklApiClient(
             } else {
                 null
             }
-            val token = requestAuthorization?.accessToken
+            // AUTH V2 access tokens last 7 days: renew when one is about to expire.
+            requestAuthorization?.let { initial ->
+                if (tokenRefresher != null && initial.needsRefresh(nowEpochMs())) {
+                    tokenRefresher.refresh(initial)?.let { renewed -> requestAuthorization = renewed }
+                }
+            }
+            var token = requestAuthorization?.accessToken
             val maxAttempts = if (request.retryPolicy == SimklRetryPolicy.NEVER) 1 else MAX_ATTEMPTS
             var syncWriteLockRetried = false
-            repeat(maxAttempts) { attempt ->
+            var renewedAfterUnauthorized = false
+            // One spare iteration so a renewed token can retry even on the last attempt.
+            repeat(maxAttempts + if (tokenRefresher != null) 1 else 0) { attempt ->
                 val response = try {
                     executeRateLimited(request.method) {
                         engine.execute(
@@ -123,7 +134,8 @@ class SimklApiClient(
                             headers = simklRequestHeaders(
                                 configuration = configuration,
                                 accessToken = token,
-                                contentTypeJson = request.method != SimklHttpMethod.GET
+                                contentTypeJson = request.method != SimklHttpMethod.GET,
+                                contentType = request.contentType
                             ),
                             body = request.body
                         )
@@ -131,7 +143,7 @@ class SimklApiClient(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Throwable) {
-                    if (attempt == maxAttempts - 1) {
+                    if (attempt >= maxAttempts - 1) {
                         throw SimklApiException(null, "transport_failure", "Simkl request failed", error)
                     }
                     sleep(retryDelayMs(attempt, null, retryJitterMs()))
@@ -161,12 +173,22 @@ class SimklApiClient(
                     SimklResponseAction.SUCCESS -> return@withLock response.toApiResponse()
                     SimklResponseAction.SOFT_SUCCESS -> return@withLock response.toApiResponse(true)
                     SimklResponseAction.REAUTHENTICATE -> {
+                        val stale = requestAuthorization
+                        if (tokenRefresher != null && stale != null && !renewedAfterUnauthorized) {
+                            renewedAfterUnauthorized = true
+                            val renewed = tokenRefresher.refresh(stale)
+                            if (renewed != null) {
+                                requestAuthorization = renewed
+                                token = renewed.accessToken
+                                return@repeat
+                            }
+                        }
                         requestAuthorization?.let(onUnauthorized)
                         throw response.toApiException(json)
                     }
                     SimklResponseAction.FAIL -> throw response.toApiException(json)
                     SimklResponseAction.RETRY -> {
-                        if (attempt == maxAttempts - 1) throw response.toApiException(json)
+                        if (attempt >= maxAttempts - 1) throw response.toApiException(json)
                         sleep(
                             retryDelayMs(
                                 attempt,

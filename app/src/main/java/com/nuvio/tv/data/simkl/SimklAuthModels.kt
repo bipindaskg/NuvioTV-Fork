@@ -15,6 +15,7 @@ enum class SimklAuthError {
     PIN_EXPIRED,
     PIN_INVALIDATED,
     AUTHORIZATION_REVOKED,
+    INVALID_CLIENT,
     NETWORK
 }
 
@@ -23,7 +24,11 @@ data class SimklPinSession(
     val userCode: String,
     val verificationUri: String,
     val expiresAtEpochMs: Long,
-    val intervalSeconds: Int
+    val intervalSeconds: Int,
+    /** AUTH V2 only: credential used to poll for approval. Never shown to the user. */
+    val deviceCode: String? = null,
+    /** AUTH V2 only: link with the code pre-filled, used for the QR code. */
+    val verificationUriComplete: String? = null
 )
 
 data class SimklAuthState(
@@ -58,7 +63,8 @@ internal data class SimklStoredAuthMetadata(
     val accountId: Long? = null,
     val hasFetchedUserSettings: Boolean = false,
     val settingsActivityWatermark: String? = null,
-    val pinSession: SimklPinSession? = null
+    val pinSession: SimklPinSession? = null,
+    val accessTokenExpiresAtEpochMs: Long? = null
 )
 
 internal enum class SimklSettingsRefreshAction {
@@ -103,3 +109,44 @@ internal data class SimklUser(val name: String? = null)
 
 @Serializable
 internal data class SimklAccount(val id: Long? = null)
+
+/** Tokens from AUTH V2 (device flow or refresh). */
+data class SimklTokenSet(
+    val accessToken: String,
+    val refreshToken: String,
+    val expiresAtEpochMs: Long
+)
+
+@Serializable
+internal data class SimklDeviceCodeResponse(
+    @SerialName("device_code") val deviceCode: String? = null,
+    @SerialName("user_code") val userCode: String? = null,
+    @SerialName("verification_uri") val verificationUri: String? = null,
+    @SerialName("verification_uri_complete") val verificationUriComplete: String? = null,
+    @SerialName("expires_in") val expiresIn: Long? = null,
+    val interval: Int? = null
+)
+
+@Serializable
+internal data class SimklOAuth2TokenResponse(
+    @SerialName("access_token") val accessToken: String? = null,
+    @SerialName("token_type") val tokenType: String? = null,
+    @SerialName("expires_in") val expiresIn: Long? = null,
+    @SerialName("refresh_token") val refreshToken: String? = null,
+    val scope: String? = null
+)
+
+@Serializable
+internal data class SimklOAuth2ErrorBody(
+    val error: String? = null,
+    @SerialName("error_description") val errorDescription: String? = null
+)
+
+internal fun SimklOAuth2TokenResponse.toTokenSet(nowEpochMs: Long): SimklTokenSet? {
+    val access = accessToken?.trim()?.takeIf(String::isNotBlank) ?: return null
+    val refresh = refreshToken?.trim()?.takeIf(String::isNotBlank) ?: return null
+    val lifetimeSeconds = expiresIn?.takeIf { it > 0L } ?: DEFAULT_ACCESS_TOKEN_LIFETIME_SECONDS
+    return SimklTokenSet(access, refresh, nowEpochMs + lifetimeSeconds * 1_000L)
+}
+
+private const val DEFAULT_ACCESS_TOKEN_LIFETIME_SECONDS = 604_800L

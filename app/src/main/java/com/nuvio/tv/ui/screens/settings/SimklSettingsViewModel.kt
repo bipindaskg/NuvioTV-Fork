@@ -33,6 +33,7 @@ data class SimklSettingsUiState(
     val username: String? = null,
     val userCode: String? = null,
     val verificationUri: String? = null,
+    val verificationUriComplete: String? = null,
     val expiresAtEpochMs: Long? = null,
     val pollIntervalSeconds: Int = 5,
     val statusMessage: String? = null,
@@ -64,6 +65,7 @@ class SimklSettingsViewModel @Inject constructor(
                         username = state.username,
                         userCode = state.pinSession?.userCode,
                         verificationUri = state.pinSession?.verificationUri,
+                        verificationUriComplete = state.pinSession?.verificationUriComplete,
                         expiresAtEpochMs = state.pinSession?.expiresAtEpochMs,
                         pollIntervalSeconds = state.pinSession?.intervalSeconds ?: 5,
                         errorMessage = state.error?.message()
@@ -248,6 +250,7 @@ class SimklSettingsViewModel @Inject constructor(
         SimklAuthError.PIN_EXPIRED,
         SimklAuthError.PIN_INVALIDATED -> context.getString(R.string.simkl_error_code_expired)
         SimklAuthError.AUTHORIZATION_REVOKED -> context.getString(R.string.simkl_error_authorization_revoked)
+        SimklAuthError.INVALID_CLIENT -> context.getString(R.string.simkl_error_invalid_client)
         SimklAuthError.INVALID_PIN_RESPONSE,
         SimklAuthError.NETWORK -> context.getString(R.string.simkl_error_network)
     }

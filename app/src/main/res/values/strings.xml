@@ -3278,6 +3278,7 @@
     <string name="simkl_error_code_expired">Simkl code expired. Start again.</string>
     <string name="simkl_error_authorization_revoked">Simkl authorization was revoked. Connect again.</string>
     <string name="simkl_error_network">Unable to reach Simkl. Try again.</string>
+    <string name="simkl_error_invalid_client">Simkl rejected this app's Client ID. Check SIMKL_CLIENT_ID.</string>
     <string name="tracking_removal_title">Remove from %1$s?</string>
     <string name="tracking_removal_message">Removing “%1$s” from %2$s will also clear its %3$s there. This can’t be undone.</string>
     <string name="tracking_removal_impact_history">watched history</string>

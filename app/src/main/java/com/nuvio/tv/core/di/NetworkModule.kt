@@ -28,6 +28,7 @@ import com.nuvio.tv.data.simkl.SimklApiClient
 import com.nuvio.tv.data.simkl.SimklApiConfiguration
 import com.nuvio.tv.data.simkl.SimklAuthError
 import com.nuvio.tv.data.simkl.SimklAuthStorage
+import com.nuvio.tv.data.simkl.SimklTokenRefresher
 import com.nuvio.tv.data.simkl.defaultSimklApiConfiguration
 import com.nuvio.tv.LocaleCache
 import com.nuvio.tv.core.logging.redactLinksForLog
@@ -299,18 +300,22 @@ object NetworkModule {
         @Named("simkl") okHttpClient: OkHttpClient,
         configuration: SimklApiConfiguration,
         storage: SimklAuthStorage
-    ): SimklApiClient = SimklApiClient(
-        engine = OkHttpSimklEngine(okHttpClient),
-        configuration = configuration,
-        authorization = storage::authorization,
-        onUnauthorized = { authorization ->
-            storage.clearAuth(
-                error = SimklAuthError.AUTHORIZATION_REVOKED,
-                scope = authorization.scope,
-                expectedAccessToken = authorization.accessToken
-            )
-        }
-    )
+    ): SimklApiClient {
+        val engine = OkHttpSimklEngine(okHttpClient)
+        return SimklApiClient(
+            engine = engine,
+            configuration = configuration,
+            authorization = storage::authorization,
+            onUnauthorized = { authorization ->
+                storage.clearAuth(
+                    error = SimklAuthError.AUTHORIZATION_REVOKED,
+                    scope = authorization.scope,
+                    expectedAccessToken = authorization.accessToken
+                )
+            },
+            tokenRefresher = SimklTokenRefresher(engine, configuration, storage)
+        )
+    }
 
     @Provides
     @Singleton
