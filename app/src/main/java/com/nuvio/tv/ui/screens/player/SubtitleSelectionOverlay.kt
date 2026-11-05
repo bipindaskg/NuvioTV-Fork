@@ -283,7 +283,7 @@ internal fun SubtitleSelectionOverlay(
     // Keep the panel in the top part of the screen (~75% of the height) so the bottom of the
     // picture stays clear and the applied subtitle is visible while you switch files.
     val screenHeightDp = LocalConfiguration.current.screenHeightDp
-    val panelMaxHeight = (screenHeightDp * 0.75f).dp.coerceIn(240.dp, 620.dp)
+    val panelMaxHeight = (screenHeightDp * 0.80f).dp.coerceIn(240.dp, 620.dp)
 
     PlayerOverlayScaffold(
         visible = visible,
