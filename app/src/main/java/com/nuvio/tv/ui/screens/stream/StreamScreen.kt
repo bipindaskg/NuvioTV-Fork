@@ -852,15 +852,6 @@ private fun ProviderSidebar(
     remember(names) { focusRequesters.keys.retainAll((names + SIDEBAR_ALL_KEY).toSet()) }
 
     Column(modifier = modifier) {
-        Text(
-            text = "${names.size} addons \u00B7 ${allStreams.size} streams",
-            style = MaterialTheme.typography.bodyMedium,
-            color = NuvioTheme.extendedColors.textSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = NuvioTheme.spacing.sm)
-        )
         LazyColumn(
             state = listState,
             verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.xs),
