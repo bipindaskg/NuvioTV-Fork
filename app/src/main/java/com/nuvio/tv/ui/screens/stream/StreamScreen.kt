@@ -479,8 +479,9 @@ fun StreamScreen(
                         episode = uiState.episode,
                         episodeName = uiState.episodeName,
                         runtime = uiState.runtime,
-                        genres = uiState.genres,
-                        year = uiState.year,
+                        // Genres and year are hidden here to leave room for the provider list.
+                        genres = null,
+                        year = null,
                         logoHeight = 72.dp,
                         modifier = Modifier
                             .fillMaxWidth()
