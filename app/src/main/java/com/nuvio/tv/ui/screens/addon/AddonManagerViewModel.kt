@@ -35,6 +35,7 @@ import com.nuvio.tv.core.server.TraktSourceSearchResultInfo
 import com.nuvio.tv.core.profile.ProfileManager
 import com.nuvio.tv.core.tmdb.TmdbCollectionSourceResolver
 import com.nuvio.tv.core.trakt.TraktPublicListSourceResolver
+import com.nuvio.tv.data.local.AddonPreferences
 import com.nuvio.tv.data.local.CollectionsDataStore
 import com.nuvio.tv.data.local.ExperienceModeDataStore
 import com.nuvio.tv.data.local.LayoutPreferenceDataStore
@@ -75,7 +76,8 @@ class AddonManagerViewModel @Inject constructor(
     private val tmdbCollectionSourceResolver: TmdbCollectionSourceResolver,
     private val traktPublicListSourceResolver: TraktPublicListSourceResolver,
     @ApplicationContext private val context: Context,
-    private val healthStore: AddonHealthStore
+    private val healthStore: AddonHealthStore,
+    private val addonPreferences: AddonPreferences
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddonManagerUiState())
@@ -226,6 +228,13 @@ class AddonManagerViewModel @Inject constructor(
     fun removeAddon(baseUrl: String) {
         viewModelScope.launch {
             addonRepository.removeAddon(baseUrl)
+        }
+    }
+
+    /** Gives the add-on a custom name everywhere in the app; a blank name restores the original. */
+    fun renameAddon(baseUrl: String, newName: String) {
+        viewModelScope.launch {
+            addonPreferences.setUserSetName(baseUrl, newName)
         }
     }
 

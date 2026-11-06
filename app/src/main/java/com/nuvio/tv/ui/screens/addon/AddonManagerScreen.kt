@@ -189,6 +189,11 @@ fun AddonManagerScreen(
     val deleteDialogFocusRequester = remember { FocusRequester() }
     var isEditing by remember { mutableStateOf(false) }
     var addonUrlPendingDeletion by remember { mutableStateOf<String?>(null) }
+    var addonUrlPendingRename by remember { mutableStateOf<String?>(null) }
+    var renameText by remember { mutableStateOf("") }
+    var renameEditing by remember { mutableStateOf(false) }
+    val renameSurfaceFocusRequester = remember { FocusRequester() }
+    val renameFieldFocusRequester = remember { FocusRequester() }
     var restoreManageFromPhoneFocus by remember { mutableStateOf(false) }
     val hasHomeVisibleCatalogs = remember(uiState.installedAddons) {
         uiState.installedAddons.any { addon ->
@@ -245,7 +250,7 @@ fun AddonManagerScreen(
         }
     }
 
-    LaunchedEffect(uiState.isQrModeActive, uiState.pendingChange, addonUrlPendingDeletion) {
+    LaunchedEffect(uiState.isQrModeActive, uiState.pendingChange, addonUrlPendingDeletion, addonUrlPendingRename) {
         if (uiState.isQrModeActive) {
             restoreManageFromPhoneFocus = true
         }
@@ -253,7 +258,8 @@ fun AddonManagerScreen(
             !uiState.isQrModeActive &&
             uiState.pendingChange == null &&
             !isEditing &&
-            addonUrlPendingDeletion == null
+            addonUrlPendingDeletion == null &&
+            addonUrlPendingRename == null
         ) {
             if (restoreManageFromPhoneFocus) {
                 requestManageFromPhoneFocus()
@@ -270,6 +276,21 @@ fun AddonManagerScreen(
         }
     }
 
+    LaunchedEffect(addonUrlPendingRename) {
+        if (addonUrlPendingRename != null) {
+            repeat(2) { withFrameNanos { } }
+            runCatching { renameSurfaceFocusRequester.requestFocus() }
+        }
+    }
+
+    // When the name field is opened for typing, focus it and show the keyboard
+    LaunchedEffect(renameEditing) {
+        if (renameEditing) {
+            runCatching { renameFieldFocusRequester.requestFocus() }
+            keyboardController?.show()
+        }
+    }
+
     LaunchedEffect(uiState.transientMessage) {
         if (uiState.transientMessage != null) {
             delay(3200)
@@ -282,6 +303,7 @@ fun AddonManagerScreen(
         uiState.isQrModeActive,
         uiState.pendingChange,
         addonUrlPendingDeletion,
+        addonUrlPendingRename,
         pendingFocusRestore
     ) {
         val observer = LifecycleEventObserver { _, event ->
@@ -302,7 +324,8 @@ fun AddonManagerScreen(
                     !uiState.isQrModeActive &&
                     uiState.pendingChange == null &&
                     !isEditing &&
-                    addonUrlPendingDeletion == null
+                    addonUrlPendingDeletion == null &&
+                    addonUrlPendingRename == null
                 ) {
                     if (restoreManageFromPhoneFocus) {
                         requestManageFromPhoneFocus()
@@ -677,6 +700,11 @@ fun AddonManagerScreen(
                             }
                         },
                         onRemove = { addonUrlPendingDeletion = addon.baseUrl },
+                        onRename = {
+                            renameText = addon.displayName
+                            renameEditing = false
+                            addonUrlPendingRename = addon.baseUrl
+                        },
                         onEnabledChange = { enabled -> viewModel.setAddonEnabled(addon.baseUrl, enabled) },
                         isReadOnly = viewModel.isReadOnly,
                         showReorder = !isEssential,
@@ -704,6 +732,99 @@ fun AddonManagerScreen(
                     onConfirm = viewModel::confirmPendingChange,
                     onReject = viewModel::rejectPendingChange
                 )
+            }
+        }
+
+        addonUrlPendingRename?.let { renameUrl ->
+            val originalName = uiState.installedAddons.firstOrNull { it.baseUrl == renameUrl }?.name ?: renameUrl
+            val closeRename = {
+                renameEditing = false
+                keyboardController?.hide()
+                addonUrlPendingRename = null
+            }
+            val saveRename = {
+                viewModel.renameAddon(renameUrl, renameText)
+                closeRename()
+            }
+            NuvioDialog(
+                onDismiss = closeRename,
+                title = "Rename add-on",
+                subtitle = "Original name: $originalName",
+                suppressFirstKeyUp = false
+            ) {
+                Surface(
+                    onClick = { renameEditing = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(renameSurfaceFocusRequester),
+                    colors = ClickableSurfaceDefaults.colors(
+                        containerColor = settingsItemColor(NuvioTheme.colors.BackgroundElevated),
+                        focusedContainerColor = NuvioTheme.colors.BackgroundElevated
+                    ),
+                    border = ClickableSurfaceDefaults.border(
+                        border = Border(
+                            border = BorderStroke(NuvioTheme.spacing.hairline, NuvioTheme.colors.Border),
+                            shape = settingsItemShape(NuvioTheme.radii.md)
+                        ),
+                        focusedBorder = Border(
+                            border = NuvioTheme.focusRing.border(NuvioTheme.spacing.xxs),
+                            shape = settingsItemShape(NuvioTheme.radii.md)
+                        )
+                    ),
+                    shape = ClickableSurfaceDefaults.shape(settingsItemShape(NuvioTheme.radii.md)),
+                    scale = ClickableSurfaceDefaults.scale(focusedScale = 1f)
+                ) {
+                    Box(modifier = Modifier.padding(NuvioTheme.spacing.md)) {
+                        BasicTextField(
+                            value = renameText,
+                            onValueChange = { renameText = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(renameFieldFocusRequester)
+                                .onFocusChanged {
+                                    if (!it.isFocused && renameEditing) {
+                                        renameEditing = false
+                                        keyboardController?.hide()
+                                    }
+                                },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = { saveRename() }),
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                color = NuvioTheme.colors.TextPrimary,
+                                textDirection = TextDirection.Content
+                            ),
+                            cursorBrush = SolidColor(if (renameEditing) NuvioTheme.colors.Primary else Color.Transparent)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(NuvioTheme.spacing.md))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.md, Alignment.End)
+                ) {
+                    Button(
+                        onClick = { closeRename() },
+                        modifier = Modifier.semantics { role = Role.Button }
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            viewModel.renameAddon(renameUrl, "")
+                            closeRename()
+                        },
+                        modifier = Modifier.semantics { role = Role.Button }
+                    ) {
+                        Text("Reset to original")
+                    }
+                    Button(
+                        onClick = { saveRename() },
+                        modifier = Modifier.semantics { role = Role.Button }
+                    ) {
+                        Text("Save")
+                    }
+                }
             }
         }
 
@@ -1377,6 +1498,7 @@ private fun AddonCard(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onRemove: () -> Unit,
+    onRename: () -> Unit = {},
     onEnabledChange: (Boolean) -> Unit,
     isReadOnly: Boolean = false,
     showReorder: Boolean = true,
@@ -1426,6 +1548,7 @@ private fun AddonCard(
                 onMoveUp = onMoveUp,
                 onMoveDown = onMoveDown,
                 onRemove = onRemove,
+                onRename = onRename,
                 onEnabledChange = onEnabledChange,
                 showReorder = showReorder,
                 healthLevel = healthLevel,
@@ -1445,6 +1568,7 @@ private fun AddonCardContent(
     onMoveUp: () -> Unit = {},
     onMoveDown: () -> Unit = {},
     onRemove: () -> Unit = {},
+    onRename: () -> Unit = {},
     onEnabledChange: (Boolean) -> Unit = {},
     showReorder: Boolean = true,
     toggleFocusRequester: FocusRequester? = null,
@@ -1572,6 +1696,19 @@ private fun AddonCardContent(
                         ) {
                             Icon(imageVector = Icons.Default.ArrowDownward, contentDescription = stringResource(R.string.cd_move_down))
                         }
+                    }
+                    Button(
+                        onClick = onRename,
+                        modifier = Modifier.semantics { role = Role.Button },
+                        colors = ButtonDefaults.colors(
+                            containerColor = settingsItemColor(NuvioTheme.colors.BackgroundCard),
+                            contentColor = NuvioTheme.colors.TextSecondary,
+                            focusedContainerColor = NuvioTheme.colors.FocusBackground,
+                            focusedContentColor = NuvioTheme.colors.Primary
+                        ),
+                        shape = ButtonDefaults.shape(settingsItemShape(NuvioTheme.radii.md))
+                    ) {
+                        Text(text = "Rename")
                     }
                     Button(
                         onClick = onRemove,

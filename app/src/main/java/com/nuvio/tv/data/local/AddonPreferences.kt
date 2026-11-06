@@ -203,6 +203,19 @@ class AddonPreferences @Inject constructor(
         }
     }
 
+    /** Sets (or, when [name] is blank, clears) the custom display name of one add-on. */
+    suspend fun setUserSetName(url: String, name: String?) {
+        val active = profileManager.activeProfile
+        if (active != null && !active.isPrimary && active.usesPrimaryAddons) return
+        store().edit { preferences ->
+            val current = preferences[userSetNamesKey]?.let(::parseNameMap).orEmpty().toMutableMap()
+            val key = canonicalizeUrl(url)
+            val trimmed = name?.trim().orEmpty()
+            if (trimmed.isEmpty()) current.remove(key) else current[key] = trimmed
+            preferences[userSetNamesKey] = gson.toJson(current)
+        }
+    }
+
     private fun parseNameMap(json: String): Map<String, String> {
         return try {
             val type = object : TypeToken<Map<String, String>>() {}.type
