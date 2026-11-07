@@ -657,6 +657,7 @@ class MetaDetailsViewModel @Inject constructor(
             MetaDetailsEvent.OnDismissSharedTrailer -> dismissSharedTrailerOverlay()
             MetaDetailsEvent.OnRetrySharedTrailer -> retrySharedTrailer()
             MetaDetailsEvent.OnToggleMovieWatched -> toggleMovieWatched()
+            MetaDetailsEvent.OnClearMovieProgress -> clearMovieProgress()
             is MetaDetailsEvent.OnToggleEpisodeWatched -> toggleEpisodeWatched(event.video)
             is MetaDetailsEvent.OnMarkSeasonWatched -> markSeasonWatched(event.season)
             is MetaDetailsEvent.OnMarkSeasonUnwatched -> markSeasonUnwatched(event.season)
@@ -2938,6 +2939,22 @@ class MetaDetailsViewModel @Inject constructor(
             )
         }
         showMessage(localizedContext.getString(R.string.detail_lists_updated))
+    }
+
+    /**
+     * Drops the saved partial progress of this movie so it leaves the Continue Watching row.
+     * It does not mark the movie watched.
+     */
+    private fun clearMovieProgress() {
+        val meta = _uiState.value.meta ?: return
+        if (meta.apiType != "movie") return
+        viewModelScope.launch {
+            runCatching { watchProgressRepository.removeProgress(_effectiveContentId.value) }
+                .onSuccess { showMessage("Watch progress cleared") }
+                .onFailure { error ->
+                    showMessage(error.message ?: "Could not clear the watch progress", isError = true)
+                }
+        }
     }
 
     private fun toggleMovieWatched() {

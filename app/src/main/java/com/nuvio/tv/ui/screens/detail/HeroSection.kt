@@ -92,6 +92,7 @@ import com.nuvio.tv.ui.components.SynopsisDescription
 import com.nuvio.tv.ui.theme.NuvioTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.platform.LocalConfiguration
@@ -123,6 +124,9 @@ fun HeroContentSection(
     isMovieWatched: Boolean,
     isMovieWatchedPending: Boolean,
     onToggleMovieWatched: () -> Unit,
+    /** Movies only: true while the movie has partial progress that can be cleared. */
+    showClearProgress: Boolean = false,
+    onClearProgress: () -> Unit = {},
     trailerAvailable: Boolean = false,
     onTrailerClick: () -> Unit = {},
     showRandomEpisodeButton: Boolean = false,
@@ -327,6 +331,19 @@ fun HeroContentSection(
                                 onPlayFocusRestored()
                             }
                         )
+
+                        if (showClearProgress) {
+                            ActionIconButton(
+                                icon = Icons.Default.Close,
+                                contentDescription = "Clear watch progress",
+                                onClick = {
+                                    // The button disappears once progress is gone: park focus on Play first.
+                                    runCatching { playButtonFocusRequester?.requestFocus() }
+                                    onClearProgress()
+                                },
+                                onFocused = onHeroActionFocused
+                            )
+                        }
 
                         ActionIconButton(
                             icon = if (isInLibrary) Icons.Default.Check else null,

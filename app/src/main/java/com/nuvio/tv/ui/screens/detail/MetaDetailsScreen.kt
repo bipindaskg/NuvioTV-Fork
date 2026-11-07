@@ -1010,6 +1010,7 @@ fun MetaDetailsScreen(
                     onToggleLibrary = { viewModel.onEvent(MetaDetailsEvent.OnToggleLibrary) },
                     onLibraryLongPress = { viewModel.onEvent(MetaDetailsEvent.OnLibraryLongPress) },
                     onToggleMovieWatched = { viewModel.onEvent(MetaDetailsEvent.OnToggleMovieWatched) },
+                    onClearMovieProgress = { viewModel.onEvent(MetaDetailsEvent.OnClearMovieProgress) },
                     onToggleEpisodeWatched = { video ->
                         viewModel.onEvent(MetaDetailsEvent.OnToggleEpisodeWatched(video))
                     },
@@ -1316,6 +1317,7 @@ private fun MetaDetailsContent(
     onToggleLibrary: () -> Unit,
     onLibraryLongPress: () -> Unit,
     onToggleMovieWatched: () -> Unit,
+    onClearMovieProgress: () -> Unit = {},
     onToggleEpisodeWatched: (Video) -> Unit,
     onMarkSeasonWatched: (Int) -> Unit,
     onMarkSeasonUnwatched: (Int) -> Unit,
@@ -2622,6 +2624,8 @@ private fun MetaDetailsContent(
                         isMovieWatched = isMovieWatched,
                         isMovieWatchedPending = isMovieWatchedPending,
                         onToggleMovieWatched = onToggleMovieWatched,
+                        showClearProgress = meta.apiType == "movie" && nextToWatch?.isResume == true,
+                        onClearProgress = onClearMovieProgress,
                         mdbListRatings = ratings.ratings.takeIf { ratings.active },
                         mdbListRatingOrder = mdbListRatingOrder,
                         sourceSignal = heroSourceSignal.value,
