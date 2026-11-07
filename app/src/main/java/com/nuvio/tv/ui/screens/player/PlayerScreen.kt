@@ -941,6 +941,7 @@ fun PlayerScreen(
             RemoteButtonJob.PREVIOUS_CHAPTER -> whenAvailable(PlayerControlAction.CHAPTERS, PlayerEvent.OnPreviousChapter)
             RemoteButtonJob.AUDIO -> whenAvailable(PlayerControlAction.AUDIO, PlayerEvent.OnShowAudioOverlay)
             RemoteButtonJob.SUBTITLES -> whenAvailable(PlayerControlAction.SUBTITLES, PlayerEvent.OnShowSubtitleOverlay)
+            RemoteButtonJob.SUB_SYNC -> whenAvailable(PlayerControlAction.SUB_SYNC, PlayerEvent.OnShowSubtitleDelayOverlay)
             RemoteButtonJob.ASPECT -> whenAvailable(PlayerControlAction.ASPECT, PlayerEvent.OnToggleAspectRatio)
             RemoteButtonJob.NEXT_EPISODE -> whenAvailable(PlayerControlAction.NEXT_EPISODE, PlayerEvent.OnPlayNextEpisode)
             RemoteButtonJob.RESTART -> whenAvailable(PlayerControlAction.RESTART, PlayerEvent.OnSeekTo(0L))
@@ -3389,7 +3390,8 @@ private fun PlayerControlsOverlay(
                 aspect = onToggleAspectRatio, engine = requestEngineSwitch, report = onReportPlaybackIssue,
                 more = onToggleMoreActions, external = onOpenInExternalPlayer, info = onShowStreamInfo,
                 stats = onTogglePlaybackStats, interaction = onResetHideTimer, hide = onHideControls,
-                party = { viewModel.onEvent(PlayerEvent.OnShowPartyPanel) }), reportCodeVisible)
+                party = { viewModel.onEvent(PlayerEvent.OnShowPartyPanel) },
+                subSync = { viewModel.onEvent(PlayerEvent.OnShowSubtitleDelayOverlay) }), reportCodeVisible)
         return
     }
     if (LocalV2Appearance.current != null) {

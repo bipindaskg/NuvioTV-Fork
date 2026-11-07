@@ -5,7 +5,7 @@ import com.nuvio.tv.core.build.IssueReports
 /** Stable preference IDs, independent of enum names and UI/theme implementations. */
 enum class PlayerControlAction(val id: String) {
     PLAY_PAUSE("play_pause"), RESTART("restart"), EPISODES("episodes"), CHAPTERS("chapters"), NEXT_EPISODE("next_episode"),
-    STATS("stats"), AUDIO("audio"), SUBTITLES("subtitles"), SOURCES("sources"), WATCH_PARTY("watch_party"),
+    STATS("stats"), AUDIO("audio"), SUBTITLES("subtitles"), SUB_SYNC("sub_sync"), SOURCES("sources"), WATCH_PARTY("watch_party"),
     MORE("more"), SPEED("speed"), ASPECT("aspect"), EXTERNAL("external"), ENGINE("engine"), REPORT("report"),
     INFO("info");
 
@@ -107,7 +107,7 @@ class PlayerControlLayout private constructor(private val placements: List<Playe
         fun original(v2: Boolean): PlayerControlLayout {
             val shown = setOf(PlayerControlAction.PLAY_PAUSE, PlayerControlAction.RESTART, PlayerControlAction.EPISODES,
                 PlayerControlAction.CHAPTERS, PlayerControlAction.NEXT_EPISODE, PlayerControlAction.STATS, PlayerControlAction.AUDIO,
-                PlayerControlAction.SUBTITLES, PlayerControlAction.SOURCES, PlayerControlAction.WATCH_PARTY,
+                PlayerControlAction.SUBTITLES, PlayerControlAction.SUB_SYNC, PlayerControlAction.SOURCES, PlayerControlAction.WATCH_PARTY,
                 PlayerControlAction.MORE,
                 PlayerControlAction.SPEED, PlayerControlAction.ASPECT, PlayerControlAction.EXTERNAL,
                 PlayerControlAction.ENGINE, PlayerControlAction.REPORT)

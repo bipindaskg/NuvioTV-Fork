@@ -23,7 +23,10 @@ internal fun playerControlAvailability(
         !it.searching && it.countdownSec == null
     } != false) add(PlayerControlAction.NEXT_EPISODE)
     if (state.audioTracks.isNotEmpty()) add(PlayerControlAction.AUDIO)
-    if (state.subtitleTracks.isNotEmpty() || state.addonSubtitles.isNotEmpty()) add(PlayerControlAction.SUBTITLES)
+    if (state.subtitleTracks.isNotEmpty() || state.addonSubtitles.isNotEmpty()) {
+        add(PlayerControlAction.SUBTITLES)
+        add(PlayerControlAction.SUB_SYNC)
+    }
     if (!state.tunnelingEnabled && !appliedTunneling) add(PlayerControlAction.ASPECT)
     if (reportsAvailable && state.playbackIssueReportsEnabled && state.playbackIssueReportStatus != PlaybackIssueReportStatus.Sending &&
         state.playbackIssueReportStatus != PlaybackIssueReportStatus.Sent) add(PlayerControlAction.REPORT)

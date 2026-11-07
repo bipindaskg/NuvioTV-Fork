@@ -2069,6 +2069,7 @@
     <string name="player_go_back">Go back</string>
     <string name="player_switch_to_mpv">Switch to MPV player</string>
     <string name="player_report_issue">Report issue</string>
+    <string name="player_sub_sync">Sub Sync</string>
     <string name="player_report_issue_sending">Sending playback report...</string>
     <string name="player_report_issue_sending_button">Sending...</string>
     <string name="player_report_issue_sent">Report sent: %1$s</string>

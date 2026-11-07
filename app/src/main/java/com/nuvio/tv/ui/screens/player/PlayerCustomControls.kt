@@ -73,6 +73,7 @@ internal fun playerControlLabel(action: PlayerControlAction, playing: Boolean = 
     PlayerControlAction.STATS -> R.string.cd_playback_stats
     PlayerControlAction.AUDIO -> R.string.cd_audio_tracks
     PlayerControlAction.SUBTITLES -> R.string.cd_subtitles
+    PlayerControlAction.SUB_SYNC -> R.string.player_sub_sync
     PlayerControlAction.SOURCES -> R.string.cd_sources
     PlayerControlAction.MORE -> R.string.player_more_short
     PlayerControlAction.SPEED -> R.string.cd_playback_speed
@@ -93,6 +94,7 @@ internal fun playerControlIcon(action: PlayerControlAction, playing: Boolean): I
     PlayerControlAction.STATS -> Icons.Default.Equalizer
     PlayerControlAction.AUDIO -> Icons.Default.Speaker
     PlayerControlAction.SUBTITLES -> Icons.Default.Subtitles
+    PlayerControlAction.SUB_SYNC -> Icons.Default.Timer
     PlayerControlAction.SOURCES -> Icons.Default.Cloud
     PlayerControlAction.MORE -> Icons.Default.MoreHoriz
     PlayerControlAction.SPEED -> Icons.Default.Speed
@@ -124,6 +126,7 @@ private fun actionCallback(action: PlayerControlAction, actions: V2PlayerActions
     PlayerControlAction.STATS -> actions.stats
     PlayerControlAction.AUDIO -> actions.audio
     PlayerControlAction.SUBTITLES -> actions.subtitles
+    PlayerControlAction.SUB_SYNC -> actions.subSync
     PlayerControlAction.SOURCES -> actions.sources
     PlayerControlAction.MORE -> actions.more
     PlayerControlAction.SPEED -> actions.speed

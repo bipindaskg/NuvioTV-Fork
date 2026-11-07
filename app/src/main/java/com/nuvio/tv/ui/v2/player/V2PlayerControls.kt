@@ -62,7 +62,9 @@ data class V2PlayerActions(
     val more: () -> Unit, val external: () -> Unit, val info: () -> Unit,
     val stats: () -> Unit, val interaction: () -> Unit, val hide: () -> Unit,
     val party: () -> Unit = {},
-    val chapters: () -> Unit = {}
+    val chapters: () -> Unit = {},
+    /** Opens the subtitle delay window straight above the video. */
+    val subSync: () -> Unit = {}
 )
 
 private data class Utility(val id: V2PlayerControl, val icon: ImageVector, val label: String, val action: () -> Unit, val panel: Boolean = false, val enabled: Boolean = true)
