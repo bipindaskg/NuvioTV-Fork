@@ -7,6 +7,14 @@ on:
       - "**.md"
       - "docs/**"
   workflow_dispatch:
+    inputs:
+      variant:
+        description: "release = shrunk and fast on the TV (default); debug = unshrunk, only for testing"
+        type: choice
+        default: release
+        options:
+          - release
+          - debug
 
 permissions:
   contents: read
@@ -17,9 +25,12 @@ concurrency:
 
 jobs:
   build:
-    name: Build fullDebug APK
+    name: Build APK
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      # Pushes build the release variant. Run the workflow by hand to pick debug instead.
+      VARIANT: ${{ github.event.inputs.variant || 'release' }}
 
     steps:
       - name: Checkout
@@ -87,7 +98,7 @@ jobs:
             echo "No DEBUG_KEYSTORE_BASE64 secret set; a new debug key will be generated for this build."
           fi
 
-      - name: Build fullDebug APK
+      - name: Build APK
         shell: bash
         env:
           DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
@@ -96,7 +107,12 @@ jobs:
           if [ -n "$DEBUG_KEYSTORE_BASE64" ] && [ -f "$HOME/.android/debug.keystore" ]; then
             SIGN_ARGS="-Pandroid.injected.signing.store.file=$HOME/.android/debug.keystore -Pandroid.injected.signing.store.password=android -Pandroid.injected.signing.key.alias=androiddebugkey -Pandroid.injected.signing.key.password=android"
           fi
-          ./gradlew :app:assembleFullDebug --stacktrace $SIGN_ARGS 2>&1 | tee build.log
+          if [ "$VARIANT" = "debug" ]; then
+            TASK=":app:assembleFullDebug"
+          else
+            TASK=":app:assembleFullRelease"
+          fi
+          ./gradlew "$TASK" --stacktrace $SIGN_ARGS 2>&1 | tee build.log
 
       - name: Show compile errors
         if: failure()
@@ -110,7 +126,7 @@ jobs:
         continue-on-error: true
         run: |
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
-          for f in app/build/outputs/apk/full/debug/*.apk; do
+          for f in app/build/outputs/apk/full/$VARIANT/*.apk; do
             echo "== $f"
             "$APKSIGNER" verify --print-certs "$f" | grep -i "certificate SHA-256"
           done
@@ -118,7 +134,7 @@ jobs:
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: NuvioTV-full-debug-armeabi-v7a-${{ github.sha }}
-          path: app/build/outputs/apk/full/debug/*armeabi-v7a*.apk
+          name: NuvioTV-full-${{ env.VARIANT }}-armeabi-v7a-${{ github.sha }}
+          path: app/build/outputs/apk/full/${{ env.VARIANT }}/*armeabi-v7a*.apk
           if-no-files-found: error
           retention-days: 30
