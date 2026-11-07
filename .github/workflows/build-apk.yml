@@ -47,6 +47,9 @@ jobs:
         env:
           LOCAL_PROPERTIES_BASE64: ${{ secrets.LOCAL_PROPERTIES_BASE64 }}
           LOCAL_DEV_PROPERTIES_BASE64: ${{ secrets.LOCAL_DEV_PROPERTIES_BASE64 }}
+          TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
+          TRAKT_CLIENT_SECRET: ${{ secrets.TRAKT_CLIENT_SECRET }}
+          TRAKT_REDIRECT_URI: ${{ secrets.TRAKT_REDIRECT_URI }}
         run: |
           if [ -n "$LOCAL_PROPERTIES_BASE64" ]; then
             printf '%s' "$LOCAL_PROPERTIES_BASE64" | base64 --decode > local.properties
@@ -60,6 +63,24 @@ jobs:
             echo "SIMKL_CLIENT_ID=7e7ce760063b730567dad8f435bce0ed65099514eace81c6eda5efa10f16e176" >> local.properties
             echo "SIMKL_APP_NAME=nuvio" >> local.properties
           }
+
+          # Trakt keys from two plain repository secrets (no base64 needed).
+          TRAKT_ID="$(printf '%s' "$TRAKT_CLIENT_ID" | tr -d '[:space:]')"
+          TRAKT_SECRET="$(printf '%s' "$TRAKT_CLIENT_SECRET" | tr -d '[:space:]')"
+          # Trakt development apps only accept localhost redirects, and the app sends this value
+          # when it renews the login, so it must match what is registered on Trakt.
+          TRAKT_REDIRECT="$(printf '%s' "$TRAKT_REDIRECT_URI" | tr -d '[:space:]')"
+          if [ -z "$TRAKT_REDIRECT" ]; then TRAKT_REDIRECT="http://localhost"; fi
+          # Trakt stopped issuing client secrets on 2026-10-01, so only the Client ID is required.
+          if [ -n "$TRAKT_ID" ]; then
+            sed -i '/^TRAKT_CLIENT_ID=/d;/^TRAKT_CLIENT_SECRET=/d;/^TRAKT_REDIRECT_URI=/d' local.properties
+            printf 'TRAKT_CLIENT_ID=%s\nTRAKT_REDIRECT_URI=%s\n' "$TRAKT_ID" "$TRAKT_REDIRECT" >> local.properties
+            if [ -n "$TRAKT_SECRET" ]; then
+              printf 'TRAKT_CLIENT_SECRET=%s\n' "$TRAKT_SECRET" >> local.properties
+            fi
+          else
+            echo "TRAKT_CLIENT_ID secret not set: Trakt sign-in will be unavailable in this build."
+          fi
 
           if [ -n "$LOCAL_DEV_PROPERTIES_BASE64" ]; then
             printf '%s' "$LOCAL_DEV_PROPERTIES_BASE64" | base64 --decode > local.dev.properties
