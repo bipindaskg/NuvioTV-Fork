@@ -91,6 +91,7 @@ import com.nuvio.tv.ui.components.MDBListRatingsRow
 import com.nuvio.tv.ui.components.SynopsisDescription
 import com.nuvio.tv.ui.theme.NuvioTheme
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Visibility
@@ -127,6 +128,9 @@ fun HeroContentSection(
     /** Movies only: true while the movie has partial progress that can be cleared. */
     showClearProgress: Boolean = false,
     onClearProgress: () -> Unit = {},
+    /** Shows a button left of Play that opens the provider/link list, like "play manually". */
+    showPlayManually: Boolean = false,
+    onPlayManually: () -> Unit = {},
     trailerAvailable: Boolean = false,
     onTrailerClick: () -> Unit = {},
     showRandomEpisodeButton: Boolean = false,
@@ -319,6 +323,15 @@ fun HeroContentSection(
                         horizontalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.md),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        if (showPlayManually) {
+                            ActionIconButton(
+                                icon = Icons.AutoMirrored.Filled.List,
+                                contentDescription = "Choose source manually",
+                                onClick = onPlayManually,
+                                onFocused = onHeroActionFocused
+                            )
+                        }
+
                         PlayButton(
                             text = if (isPlayEnabled) nextToWatch?.displayText else stringResource(R.string.playback_unavailable),
                             enabled = isPlayEnabled,
@@ -1116,7 +1129,8 @@ private fun V2DetailGlassAction(label: String, onClick: () -> Unit, onFocused: (
     var consumed by remember { mutableStateOf(false) }
     com.nuvio.tv.ui.v2.components.NuvioActionPill(onClick = {
         if (consumed) consumed = false else onClick()
-    }, modifier = Modifier.onFocusChanged { if (it.isFocused) onFocused() }
+    }, modifier = Modifier.semantics { contentDescription = label }
+        .onFocusChanged { if (it.isFocused) onFocused() }
         .onPreviewKeyEvent { event ->
             val native = event.nativeKeyEvent
             if (onLongPress != null && native.keyCode == AndroidKeyEvent.KEYCODE_MENU) {
@@ -1127,7 +1141,7 @@ private fun V2DetailGlassAction(label: String, onClick: () -> Unit, onFocused: (
                 true
             } else false
         }, enabled = enabled) {
-        icon(); Spacer(Modifier.width(8.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+        // Icon only: the label is kept for screen readers via the semantics above.
+        icon()
     }
 }

@@ -2626,6 +2626,8 @@ private fun MetaDetailsContent(
                         onToggleMovieWatched = onToggleMovieWatched,
                         showClearProgress = meta.apiType == "movie" && nextToWatch?.isResume == true,
                         onClearProgress = onClearMovieProgress,
+                        showPlayManually = !shufflePoolEmpty && isPlayEnabled && showManualPlayOption,
+                        onPlayManually = heroPlayManualClick,
                         mdbListRatings = ratings.ratings.takeIf { ratings.active },
                         mdbListRatingOrder = mdbListRatingOrder,
                         sourceSignal = heroSourceSignal.value,
