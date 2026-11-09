@@ -15,10 +15,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -32,7 +35,9 @@ import com.nuvio.tv.R
 import com.nuvio.tv.core.network.CertificateProblem
 import com.nuvio.tv.core.network.ServerCertificateInfo
 import com.nuvio.tv.core.network.displayFingerprint
+import com.nuvio.tv.data.mediaserver.DiscoveredServer
 import com.nuvio.tv.data.mediaserver.ServerConnection
+import com.nuvio.tv.data.mediaserver.ServerDiscovery
 import com.nuvio.tv.data.mediaserver.ServerFailure
 import com.nuvio.tv.data.mediaserver.ServerProvider
 import com.nuvio.tv.data.mediaserver.ServerSignInIssue
@@ -43,6 +48,7 @@ import com.nuvio.tv.ui.theme.NuvioTheme
 import java.text.DateFormat
 import java.util.Date
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 internal data class ServerSignInRequest(
     val provider: ServerProvider,
@@ -59,14 +65,36 @@ internal fun ServerSignInDialog(
 ) {
     val state by viewModel.signIn.collectAsStateWithLifecycle()
     val quickConnect by viewModel.quickConnect.collectAsStateWithLifecycle()
+    val saved = remember(request.provider.id) { viewModel.savedLogin(request.provider.id) }
     var address by remember { mutableStateOf(request.address) }
-    var username by remember { mutableStateOf(request.username) }
-    var password by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf(request.username.ifBlank { saved?.username.orEmpty() }) }
+    var password by remember { mutableStateOf(saved?.takeIf { it.username == username }?.password.orEmpty()) }
+    var rememberLogin by remember { mutableStateOf(true) }
     val provider = request.provider
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var searching by remember { mutableStateOf(false) }
+    var foundServers by remember { mutableStateOf<List<DiscoveredServer>?>(null) }
+    val findOnNetwork = {
+        if (!searching) {
+            searching = true
+            foundServers = null
+            scope.launch {
+                val servers = ServerDiscovery.find(context, provider.id)
+                foundServers = servers
+                searching = false
+            }
+        }
+    }
     val canConnect = !state.connecting && address.isNotBlank() && username.isNotBlank()
     val connectTrusting = { trusted: ServerCertificateInfo? ->
         if (canConnect) {
             viewModel.connect(provider, address, username, password, trusted) { connection ->
+                if (rememberLogin) {
+                    viewModel.rememberLogin(provider.id, username.trim(), password)
+                } else {
+                    viewModel.forgetLogin(provider.id)
+                }
                 password = ""
                 onConnected(connection)
             }
@@ -109,6 +137,40 @@ internal fun ServerSignInDialog(
                     imeAction = ImeAction.Next,
                     modifier = Modifier.fillMaxWidth()
                 )
+            }
+        }
+        if (ServerDiscovery.isSupported(provider.id)) {
+            SettingsDialogActionRow(horizontalAlignment = Alignment.Start) {
+                SettingsDialogActionButton(
+                    text = if (searching) "Searching your network\u2026" else "Find server on network",
+                    onClick = findOnNetwork,
+                    enabled = !state.connecting && !searching
+                )
+            }
+            foundServers?.let { servers ->
+                if (servers.isEmpty()) {
+                    Text(
+                        text = "No server found. Make sure it is switched on and on the same network, or type the address.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = NuvioTheme.colors.TextSecondary
+                    )
+                } else {
+                    Text(
+                        text = "Choose your server to use its address:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = NuvioTheme.colors.TextSecondary
+                    )
+                    servers.forEach { server ->
+                        SettingsDialogActionButton(
+                            text = server.name + "  \u00B7  " + server.address,
+                            onClick = {
+                                address = server.address
+                                foundServers = null
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
         }
         if (provider.id == SiloProvider.ID) {
@@ -156,6 +218,12 @@ internal fun ServerSignInDialog(
                 imeAction = ImeAction.Done,
                 onImeAction = connect,
                 modifier = Modifier.fillMaxWidth()
+            )
+        }
+        SettingsDialogActionRow(horizontalAlignment = Alignment.Start) {
+            SettingsDialogActionButton(
+                text = if (rememberLogin) "Remember login on this device: On" else "Remember login on this device: Off",
+                onClick = { rememberLogin = !rememberLogin }
             )
         }
         state.error?.let { failure ->

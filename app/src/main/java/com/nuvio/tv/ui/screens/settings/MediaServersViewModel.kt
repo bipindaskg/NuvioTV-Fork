@@ -9,6 +9,7 @@ import com.nuvio.tv.core.network.ServerTrust
 import com.nuvio.tv.core.network.normalizeHost
 import com.nuvio.tv.data.mediaserver.AlternateAddressResult
 import com.nuvio.tv.data.mediaserver.mediabrowser.normalizeServerAddress
+import com.nuvio.tv.data.mediaserver.SavedLoginStore
 import com.nuvio.tv.data.mediaserver.ServerConnection
 import com.nuvio.tv.data.mediaserver.ServerException
 import com.nuvio.tv.data.mediaserver.ServerFailure
@@ -74,7 +75,8 @@ data class QuickConnectState(
 @HiltViewModel
 class MediaServersViewModel @Inject constructor(
     private val repository: ServerRepository,
-    private val syncService: MediaServerSyncService
+    private val syncService: MediaServerSyncService,
+    private val savedLogins: SavedLoginStore
 ) : ViewModel() {
     val uiState: StateFlow<ServersUiState> = repository.uiState
 
@@ -185,6 +187,14 @@ class MediaServersViewModel @Inject constructor(
         mutableSignIn.value = ServerSignInState()
         acceptedCertificate = null
     }
+
+    /** The username and password last used for this kind of server, if the user let us keep them. */
+    fun savedLogin(providerId: String): SavedLoginStore.Login? = savedLogins.get(providerId)
+
+    fun rememberLogin(providerId: String, username: String, password: String) =
+        savedLogins.save(providerId, username, password)
+
+    fun forgetLogin(providerId: String) = savedLogins.forget(providerId)
 
     fun connect(
         provider: ServerProvider,
