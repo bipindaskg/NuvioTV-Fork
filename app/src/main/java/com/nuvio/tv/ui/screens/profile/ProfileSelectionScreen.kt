@@ -129,6 +129,7 @@ import com.nuvio.tv.ui.components.PanelActionRow
 import com.nuvio.tv.ui.components.ProfileBackgroundImage
 import com.nuvio.tv.ui.components.ProfileBackgroundPicker
 import com.nuvio.tv.ui.components.ProfileAvatarCircle
+import com.nuvio.tv.ui.components.profileFocusRing
 import com.nuvio.tv.ui.components.ProfileEditorTab
 import com.nuvio.tv.ui.components.ProfileEditorTabs
 import com.nuvio.tv.ui.membership.Membership
@@ -1154,10 +1155,12 @@ private fun ProfileCard(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
-            modifier = Modifier.size(
-                if (compact) ProfileSelectionSpacing.CompactAvatarContainer
-                else ProfileSelectionSpacing.AvatarContainer
-            ),
+            modifier = Modifier
+                .size(
+                    if (compact) ProfileSelectionSpacing.CompactAvatarContainer
+                    else ProfileSelectionSpacing.AvatarContainer
+                )
+                .profileFocusRing(isFocused, outerAvatarSize),
             contentAlignment = Alignment.Center
         ) {
             Box(

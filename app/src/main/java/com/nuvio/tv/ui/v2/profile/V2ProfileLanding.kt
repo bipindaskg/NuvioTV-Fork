@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.nuvio.tv.ui.components.profileFocusRing
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 import com.nuvio.tv.R
@@ -148,9 +149,12 @@ fun V2ProfileLanding(
                         onSelect(profile)
                     }
                     .semantics(mergeDescendants = true) { }, horizontalAlignment = Alignment.CenterHorizontally) {
-                    NuvioAvatar(AvatarModel(profile.id.toString(), profile.name, profile.avatarColorHex,
-                        profile.avatarUrl?.takeIf(String::isNotBlank) ?: profile.avatarId?.let(avatarUrls::get)),
-                        size = portraitSize, portraitPlaceholder = true, focused = focused, selected = profile.id == activeProfileId, description = null)
+                    // Yellow glowing ring around the avatar the remote is on.
+                    androidx.compose.foundation.layout.Box(Modifier.profileFocusRing(focused, portraitSize)) {
+                        NuvioAvatar(AvatarModel(profile.id.toString(), profile.name, profile.avatarColorHex,
+                            profile.avatarUrl?.takeIf(String::isNotBlank) ?: profile.avatarId?.let(avatarUrls::get)),
+                            size = portraitSize, portraitPlaceholder = true, focused = focused, selected = profile.id == activeProfileId, description = null)
+                    }
                     Spacer(Modifier.height(if (compactHeight) 12.dp else 18.dp))
                     Text(profile.name, color = if (focused) NuvioTheme.colors.TextPrimary else NuvioTheme.colors.TextSecondary,
                         fontSize = 17.sp, fontWeight = if (focused) FontWeight.SemiBold else FontWeight.Medium,
