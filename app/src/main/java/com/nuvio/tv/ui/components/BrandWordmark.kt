@@ -45,7 +45,7 @@ fun BrandWordmark(
     ArcArtImage(markOnly = false, modifier, contentDescription, contentScale, alpha, alignment)
 }
 
-/** The Arc symbol without the lettering. */
+/** The brand symbol on its own: the Netflix "N" monogram. */
 @Composable
 fun BrandMark(
     modifier: Modifier = Modifier,
@@ -54,7 +54,14 @@ fun BrandMark(
     alpha: Float = 1f,
     alignment: Alignment = Alignment.Center
 ) {
-    ArcArtImage(markOnly = true, modifier, contentDescription, contentScale, alpha, alignment)
+    Image(
+        painter = painterResource(id = com.nuvio.tv.R.drawable.netflix_mark),
+        contentDescription = contentDescription,
+        modifier = modifier,
+        alignment = alignment,
+        contentScale = contentScale,
+        alpha = alpha
+    )
 }
 
 @Composable

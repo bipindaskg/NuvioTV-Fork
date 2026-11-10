@@ -3,10 +3,10 @@
     <item android:drawable="@drawable/start_window_stage_fill" />
     <item>
         <inset
-            android:drawable="@drawable/arc_launcher_foreground_graphite"
-            android:insetLeft="27.872%"
-            android:insetTop="1.395%"
-            android:insetRight="27.776%"
-            android:insetBottom="19.757%" />
+            android:drawable="@drawable/netflix_icon"
+            android:insetLeft="25%"
+            android:insetTop="25%"
+            android:insetRight="25%"
+            android:insetBottom="25%" />
     </item>
 </layer-list>

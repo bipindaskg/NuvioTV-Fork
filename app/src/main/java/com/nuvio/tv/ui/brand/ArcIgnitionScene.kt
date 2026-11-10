@@ -37,9 +37,8 @@ import kotlin.math.sin
  * Geometry and recoloured plates are prepared once; [draw] allocates nothing.
  */
 class ArcIgnitionScene private constructor(
-    private val logoPlate: Bitmap,
-    private val litPlate: Bitmap,
-    private val lettering: Bitmap,
+    /** The Netflix picture shown in the middle of the stage (it replaces the Arc mark and lettering). */
+    private val brandMark: Bitmap,
     private val palette: ArcPalette,
     /** Glass art carries its own transparency, so it is laid over the backdrop rather than screened. */
     private val glassPlate: Boolean,
@@ -139,39 +138,10 @@ class ArcIgnitionScene private constructor(
         canvas.translate(originX, originY)
         canvas.scale(scale, scale)
         if (!backdropFits) canvas.drawBitmap(backdrop, null, stageRect, plainPaint)
-        val plateFade = (ArcStartHandoff.plateFade(clock, handoff) * content * 255).toInt()
-        if (glassPlate) {
-            platePaint.alpha = plateFade
-            drawPlate(canvas, logoPlate, platePaint)
-        } else {
-            screenPaint.alpha = plateFade
-            drawPlate(canvas, logoPlate, screenPaint)
-        }
-
-        if (clock >= Ignite) {
-            val reveal = clamp((clock - Ignite) / 0.34f)
-            val level = 0.88f + 0.08f * sin(clock * 2.1f)
-            canvas.save()
-            canvas.clipPath(cut)
-            canvas.clipRect(0f, 0f, StageW, LogoY + (177f + reveal * 530f) / 1254f * LogoSize)
-            platePaint.alpha = (level * smooth((clock - Ignite) / 0.055f) * content * 255).toInt()
-            drawPlate(canvas, litPlate, platePaint)
-            canvas.restore()
-        }
-
-        layerPaint.alpha = (content * 255).toInt()
-        canvas.saveLayer(if (clock > 3.68f) igniteBounds else currentsBounds, layerPaint)
-        currents(canvas, clock)
-        charge(canvas, clock)
-        ignition(canvas, clock)
-        canvas.restore()
-
-        val chargeAmount = smooth((clock - 2.4f) / 1.25f) * (1f - smooth((clock - 4f) / 0.6f))
-        glow(canvas, SourceX, SourceY, 72f, chargeAmount * 0.12f * content, 0x538BDF, screenGlowPaint)
-
-        plainPaint.alpha = (smooth((clock - 0.8f) / 1.3f) * content * 255).toInt()
-        placeArt(lettering, LetterLeft, LetterTop, LetterWidth, LetterWidth * lettering.height / lettering.width)
-        canvas.drawBitmap(lettering, null, dst, plainPaint)
+        // Just the Netflix picture, fading in over the backdrop (on a hand-off it is already there).
+        plainPaint.alpha = (ArcStartHandoff.plateFade(clock, handoff) * content * 255).toInt()
+        placeArt(brandMark, MarkLeft, MarkTop, MarkWidth, MarkHeight)
+        canvas.drawBitmap(brandMark, null, dst, plainPaint)
         canvas.restoreToCount(outer)
     }
 
@@ -446,6 +416,11 @@ class ArcIgnitionScene private constructor(
         const val Ignite = 3.7f
         /** The discharge has landed and the mark breathes quietly from here on. */
         const val SettleSeconds = 4.6f
+        /** The picture is 1040 x 585 (16:9): half the stage in each direction, centred. */
+        private const val MarkLeft = 480f
+        private const val MarkTop = 270f
+        private const val MarkWidth = 960f
+        private const val MarkHeight = 540f
         private const val LogoX = 700f
         private const val LogoY = 180f
         private const val LogoSize = 520f
@@ -519,10 +494,7 @@ class ArcIgnitionScene private constructor(
             }
             val glass = palette == ArcPalette.Glass
             return ArcIgnitionScene(
-                logoPlate = if (glass) art(R.drawable.arc_intro_logo_plate_glass, recolor = false, LogoSize, sharpen = false)
-                    else art(R.drawable.arc_intro_logo_plate, recolor = true, LogoSize, sharpen = false),
-                litPlate = art(R.drawable.arc_intro_lit_plate, recolor = true, LogoSize, sharpen = false),
-                lettering = art(R.drawable.arc_intro_lettering, recolor = false, LetterWidth, sharpen = true),
+                brandMark = art(R.drawable.netflix_icon, recolor = false, MarkWidth, sharpen = false),
                 palette = palette,
                 glassPlate = glass,
                 pixelScale = pixelScale
