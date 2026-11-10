@@ -21,6 +21,13 @@ object PartyAvatars {
     /** Sets in the order the picker shows them. */
     val SETS = listOf("fun-emoji", "animals", "adventurer", "lorelei", "notionists", "bottts", "pixel-art", "thumbs")
 
+    /** Round logo pictures stored as PNG files. They are offered in the profile avatar picker only. */
+    const val LOGO_SET = "logos"
+    private val BUNDLED_SETS = SETS + LOGO_SET
+
+    /** File type of the pictures in a bundled set. */
+    fun fileExtension(set: String): String = if (set == LOGO_SET) "png" else "svg"
+
     private val _memberImages = MutableStateFlow<Map<String, String>>(emptyMap())
 
     /** Supporter avatar id -> picture on this box; empty unless this box's account has supporter avatars. */
@@ -30,7 +37,7 @@ object PartyAvatars {
         _memberImages.value = images
     }
 
-    fun isBundled(ref: String?): Boolean = ref != null && REF.matches(ref) && ref.removePrefix(PREFIX).substringBefore('/') in SETS
+    fun isBundled(ref: String?): Boolean = ref != null && REF.matches(ref) && ref.removePrefix(PREFIX).substringBefore('/') in BUNDLED_SETS
 
     fun isMember(ref: String?): Boolean = ref != null && MEMBER_REF.matches(ref)
 
@@ -41,7 +48,10 @@ object PartyAvatars {
     /** What an image loader can open: the bundled file, a supporter picture this box may show, or the https picture. */
     fun imageUri(ref: String?, members: Map<String, String> = _memberImages.value): String? = when {
         ref == null -> null
-        isBundled(ref) -> "file:///android_asset/$ASSET_DIR/${ref.removePrefix(PREFIX)}.svg"
+        isBundled(ref) -> {
+            val path = ref.removePrefix(PREFIX)
+            "file:///android_asset/$ASSET_DIR/$path.${fileExtension(path.substringBefore('/'))}"
+        }
         isMember(ref) -> members[ref.removePrefix(MEMBER_PREFIX)]
         ref.startsWith("https://") -> ref
         else -> null

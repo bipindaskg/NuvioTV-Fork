@@ -25,9 +25,11 @@ class LocalProfileAvatars @Inject constructor(
 
     /** The built-in set as catalogue entries for the editor's picker, under their own category. */
     val catalog: List<AvatarCatalogItem> by lazy {
-        PartyAvatars.SETS.flatMap { set ->
+        // The round logos come first, then the illustrated sets.
+        (listOf(PartyAvatars.LOGO_SET) + PartyAvatars.SETS).flatMap { set ->
+            val extension = ".${PartyAvatars.fileExtension(set)}"
             val names = runCatching { context.assets.list("${PartyAvatars.ASSET_DIR}/$set") }.getOrNull()
-                ?.filter { it.endsWith(".svg") }?.map { it.removeSuffix(".svg") }?.sorted().orEmpty()
+                ?.filter { it.endsWith(extension) }?.map { it.removeSuffix(extension) }?.sorted().orEmpty()
             names.map { name -> PartyAvatars.ref(set, name) }
         }.mapIndexedNotNull { index, ref ->
             val image = PartyAvatars.imageUri(ref) ?: return@mapIndexedNotNull null
