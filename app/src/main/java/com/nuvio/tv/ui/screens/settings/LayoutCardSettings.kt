@@ -327,6 +327,19 @@ internal fun LayoutPosterCardSection(
         options = radiusOptions,
         onSelected = { radius -> onEvent(LayoutSettingsEvent.SetPosterCardCornerRadius(radius)) }
     )
+    OptionRow(
+        title = "Selected poster size",
+        selectedValue = uiState.posterFocusScalePercent,
+        options = listOf(
+            PresetOption("Normal (100%)", 100),
+            PresetOption("104%", 104),
+            PresetOption("Slightly larger (108%)", 108),
+            PresetOption("112%", 112),
+            PresetOption("116%", 116),
+            PresetOption("Large (120%)", 120)
+        ),
+        onSelected = { percent -> onEvent(LayoutSettingsEvent.SetPosterFocusScale(percent)) }
+    )
     LandscapePosterScopeRow(
         selectedScope = uiState.landscapePosterScope,
         onScopeSelected = { scope -> onEvent(LayoutSettingsEvent.SetLandscapePosterScope(scope)) }

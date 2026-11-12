@@ -70,6 +70,7 @@ data class LayoutSettingsUiState(
     val posterCardWidthDp: Int = 126,
     val posterCardHeightDp: Int = 189,
     val posterCardCornerRadiusDp: Int = 12,
+    val posterFocusScalePercent: Int = 108,
     val cardDepthStyle: CardDepthStyle = CardDepthStyle(),
     val blurUnwatchedEpisodes: Boolean = false,
     val randomEpisodeEnabled: Boolean = false,
@@ -133,6 +134,7 @@ sealed class LayoutSettingsEvent {
     ) : LayoutSettingsEvent()
     data class SetPosterCardWidth(val widthDp: Int) : LayoutSettingsEvent()
     data class SetPosterCardCornerRadius(val cornerRadiusDp: Int) : LayoutSettingsEvent()
+    data class SetPosterFocusScale(val percent: Int) : LayoutSettingsEvent()
     data class SetCardDepthEnabled(val enabled: Boolean) : LayoutSettingsEvent()
     data class SetCardDepthEdgeStrength(val strength: Int) : LayoutSettingsEvent()
     data class SetCardDepthSheenStrength(val strength: Int) : LayoutSettingsEvent()
@@ -333,6 +335,11 @@ class LayoutSettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            layoutPreferenceDataStore.posterFocusScalePercent.distinctUntilChanged().collectLatest { percent ->
+                updateUiStateIfChanged { it.copy(posterFocusScalePercent = percent) }
+            }
+        }
+        viewModelScope.launch {
             layoutPreferenceDataStore.cardDepthStyle.distinctUntilChanged().collectLatest { style ->
                 updateUiStateIfChanged { it.copy(cardDepthStyle = style) }
             }
@@ -502,6 +509,7 @@ class LayoutSettingsViewModel @Inject constructor(
                 setFocusedPosterBackdropTrailerPlaybackTarget(event.target)
             is LayoutSettingsEvent.SetPosterCardWidth -> setPosterCardWidth(event.widthDp)
             is LayoutSettingsEvent.SetPosterCardCornerRadius -> setPosterCardCornerRadius(event.cornerRadiusDp)
+            is LayoutSettingsEvent.SetPosterFocusScale -> setPosterFocusScale(event.percent)
             is LayoutSettingsEvent.SetCardDepthEnabled -> setCardDepthEnabled(event.enabled)
             is LayoutSettingsEvent.SetCardDepthEdgeStrength -> setCardDepthEdgeStrength(event.strength)
             is LayoutSettingsEvent.SetCardDepthSheenStrength -> setCardDepthSheenStrength(event.strength)
@@ -760,6 +768,13 @@ class LayoutSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             layoutPreferenceDataStore.setPosterCardWidthDp(widthDp)
             layoutPreferenceDataStore.setPosterCardHeightDp((widthDp * 3) / 2)
+        }
+    }
+
+    private fun setPosterFocusScale(percent: Int) {
+        if (_uiState.value.posterFocusScalePercent == percent) return
+        viewModelScope.launch {
+            layoutPreferenceDataStore.setPosterFocusScalePercent(percent)
         }
     }
 

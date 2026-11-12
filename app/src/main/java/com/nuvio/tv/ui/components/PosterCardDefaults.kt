@@ -16,6 +16,9 @@ val LocalLandscapePosterMode = staticCompositionLocalOf { false }
 val LocalAlwaysBackdropWithLogo = staticCompositionLocalOf { false }
 val LocalLogoOverCardTrailer = staticCompositionLocalOf { true }
 
+/** How much the poster under the remote is enlarged (1.08 = 8% bigger), set in Layout settings. */
+val LocalPosterFocusScale = staticCompositionLocalOf { 1.08f }
+
 @Immutable
 data class PosterCardStyle(
     val width: Dp = NuvioComponents.tokens.posterCard.width,

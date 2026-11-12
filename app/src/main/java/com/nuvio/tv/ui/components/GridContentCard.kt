@@ -197,7 +197,7 @@ fun GridContentCard(
                     shape = cardShape
                 )
             ),
-            scale = CardDefaults.scale(focusedScale = if (isV2) 1f else posterCardStyle.focusedScale)
+            scale = CardDefaults.scale(focusedScale = LocalPosterFocusScale.current)
         ) {
             Box(
                 modifier = Modifier

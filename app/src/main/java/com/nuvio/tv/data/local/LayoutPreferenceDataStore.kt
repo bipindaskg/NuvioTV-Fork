@@ -59,6 +59,7 @@ class LayoutPreferenceDataStore @Inject constructor(
         private const val DEFAULT_POSTER_CARD_WIDTH_DP = 126
         private const val DEFAULT_POSTER_CARD_HEIGHT_DP = 189
         private const val DEFAULT_POSTER_CARD_CORNER_RADIUS_DP = 12
+        private const val DEFAULT_POSTER_FOCUS_SCALE_PERCENT = 108
         private const val DEFAULT_FOCUSED_POSTER_BACKDROP_EXPAND_DELAY_SECONDS = 3
         private const val MIN_FOCUSED_POSTER_BACKDROP_EXPAND_DELAY_SECONDS = 0
     }
@@ -98,6 +99,7 @@ class LayoutPreferenceDataStore @Inject constructor(
     private val posterCardWidthDpKey = intPreferencesKey("poster_card_width_dp")
     private val posterCardHeightDpKey = intPreferencesKey("poster_card_height_dp")
     private val posterCardCornerRadiusDpKey = intPreferencesKey("poster_card_corner_radius_dp")
+    private val posterFocusScalePercentKey = intPreferencesKey("poster_focus_scale_percent")
     private val cardDepthEnabledKey = booleanPreferencesKey("card_depth_enabled")
     private val cardDepthEdgeStrengthKey = intPreferencesKey("card_depth_edge_strength")
     private val cardDepthSheenStrengthKey = intPreferencesKey("card_depth_sheen_strength")
@@ -330,6 +332,11 @@ class LayoutPreferenceDataStore @Inject constructor(
 
     val posterCardCornerRadiusDp: Flow<Int> = profileFlow { prefs ->
         prefs[posterCardCornerRadiusDpKey] ?: DEFAULT_POSTER_CARD_CORNER_RADIUS_DP
+    }
+
+    /** How big the poster under the remote gets, in percent of its normal size (100 = no growth). */
+    val posterFocusScalePercent: Flow<Int> = profileFlow { prefs ->
+        (prefs[posterFocusScalePercentKey] ?: DEFAULT_POSTER_FOCUS_SCALE_PERCENT).coerceIn(100, 120)
     }
 
     val cardDepthStyle: Flow<CardDepthStyle> = profileFlow { prefs ->
@@ -722,6 +729,12 @@ class LayoutPreferenceDataStore @Inject constructor(
     suspend fun setPosterCardCornerRadiusDp(cornerRadiusDp: Int) {
         store().edit { prefs ->
             prefs[posterCardCornerRadiusDpKey] = cornerRadiusDp
+        }
+    }
+
+    suspend fun setPosterFocusScalePercent(percent: Int) {
+        store().edit { prefs ->
+            prefs[posterFocusScalePercentKey] = percent.coerceIn(100, 120)
         }
     }
 

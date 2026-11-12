@@ -245,6 +245,13 @@ data class DrawerItem(
     val icon: ImageVector? = null
 )
 
+private data class PosterPrefs(
+    val landscapePosterMode: Boolean,
+    val alwaysBackdropWithLogo: Boolean,
+    val logoOverCardTrailer: Boolean,
+    val posterFocusScalePercent: Int
+)
+
 private data class MainUiPrefs(
     val theme: AppTheme = AppTheme.GLASS,
     val customThemeColors: CustomThemeColors = CustomThemeColors.solid(CustomThemeColors.Default.second),
@@ -267,7 +274,8 @@ private data class MainUiPrefs(
     val cardDepthStyle: CardDepthStyle = CardDepthStyle(),
     val landscapePosterMode: Boolean = false,
     val alwaysBackdropWithLogo: Boolean = false,
-    val logoOverCardTrailer: Boolean = true
+    val logoOverCardTrailer: Boolean = true,
+    val posterFocusScalePercent: Int = 108
 )
 
 @AndroidEntryPoint
@@ -612,9 +620,10 @@ open class MainActivity : ComponentActivity() {
                 val landscapePrefsFlow = combine(
                     layoutPreferenceDataStore.landscapePosterScope,
                     layoutPreferenceDataStore.alwaysShowLandscapeClearlogo,
-                    layoutPreferenceDataStore.focusedPosterBackdropTrailerLogoEnabled
-                ) { scope, backdropWithLogo, logoOverTrailer ->
-                    Triple(scope.onAllScreens, backdropWithLogo, logoOverTrailer)
+                    layoutPreferenceDataStore.focusedPosterBackdropTrailerLogoEnabled,
+                    layoutPreferenceDataStore.posterFocusScalePercent
+                ) { scope, backdropWithLogo, logoOverTrailer, focusScalePercent ->
+                    PosterPrefs(scope.onAllScreens, backdropWithLogo, logoOverTrailer, focusScalePercent)
                 }
 
                 combine(
@@ -623,7 +632,7 @@ open class MainActivity : ComponentActivity() {
                     extraFeaturesFlow,
                     layoutPreferenceDataStore.cardDepthStyle,
                     landscapePrefsFlow
-                ) { themePrefs, layoutPrefs, extraPrefs, cardDepthStyle, (landscapePosterMode, alwaysBackdropWithLogo, logoOverCardTrailer) ->
+                ) { themePrefs, layoutPrefs, extraPrefs, cardDepthStyle, (landscapePosterMode, alwaysBackdropWithLogo, logoOverCardTrailer, posterFocusScalePercent) ->
                     themePrefs.copy(
                         hasChosenLayout = layoutPrefs.hasChosenLayout,
                         sidebarCollapsed = layoutPrefs.sidebarCollapsed,
@@ -638,7 +647,8 @@ open class MainActivity : ComponentActivity() {
                         cardDepthStyle = cardDepthStyle,
                         landscapePosterMode = landscapePosterMode,
                         alwaysBackdropWithLogo = alwaysBackdropWithLogo,
-                        logoOverCardTrailer = logoOverCardTrailer
+                        logoOverCardTrailer = logoOverCardTrailer,
+                        posterFocusScalePercent = posterFocusScalePercent
                     )
                 }
             }
@@ -711,6 +721,7 @@ open class MainActivity : ComponentActivity() {
                     LocalLandscapePosterMode provides mainUiPrefs.landscapePosterMode,
                     LocalAlwaysBackdropWithLogo provides mainUiPrefs.alwaysBackdropWithLogo,
                     LocalLogoOverCardTrailer provides mainUiPrefs.logoOverCardTrailer,
+                    com.nuvio.tv.ui.components.LocalPosterFocusScale provides (mainUiPrefs.posterFocusScalePercent / 100f),
                     LocalMemberAccess provides mainUiPrefs.memberAccess,
                     LocalAmbientIdleController provides ambientIdleController,
                     com.nuvio.tv.core.player.LocalTrailerPlayerPool provides trailerPlayerPool
