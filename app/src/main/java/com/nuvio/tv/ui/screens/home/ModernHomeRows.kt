@@ -72,6 +72,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.key
@@ -146,6 +147,7 @@ import com.nuvio.tv.ui.components.continueWatchingImageModel
 import com.nuvio.tv.ui.components.continueWatchingShouldBlur
 import com.nuvio.tv.ui.components.continueWatchingUsesEpisodeThumbnails
 import com.nuvio.tv.ui.components.LocalCardDepthStyle
+import com.nuvio.tv.ui.components.LocalPosterFocusScale
 import com.nuvio.tv.ui.components.FittedPortraitArtwork
 import com.nuvio.tv.ui.components.LocalLogoOverCardTrailer
 import com.nuvio.tv.ui.components.cardTitleOverlayVisible
@@ -307,6 +309,8 @@ internal class RowFocusGlide {
         private set
     var ringSize by mutableStateOf(IntSize.Zero)
     var ringShape by mutableStateOf<Shape>(RectangleShape)
+    /** How much the focused card is enlarged, so the ring grows with it (1 = not enlarged). */
+    var ringScale by mutableFloatStateOf(1f)
     private var listState: LazyListState? = null
     private var focusedIndex = -1
     // The focused card by key too: its index changes when items are added or moved in front of it.
@@ -419,14 +423,34 @@ internal val LocalRowFocusGlide = staticCompositionLocalOf<RowFocusGlide?> { nul
 
 /** A card's V2 focus ring: drawn by its row when it sits in one, otherwise by the card itself. */
 @Composable
-internal fun Modifier.rowFocusRing(focused: Boolean, shape: Shape): Modifier {
+internal fun Modifier.rowFocusRing(focused: Boolean, shape: Shape, scale: Float = 1f): Modifier {
     val glide = LocalRowFocusGlide.current
     if (glide == null || v2FocusDrawsOwnEdge()) return nuvioV2Focus(focused, shape, stationary = true)
     if (!focused) return this
-    SideEffect { glide.ringShape = shape }
+    SideEffect {
+        glide.ringShape = shape
+        glide.ringScale = scale
+    }
     val reportSize = remember(glide) { { size: IntSize -> glide.ringSize = size } }
     return onSizeChanged(reportSize)
 }
+
+/**
+ * Lets a row draw [bleedPx] above and below itself without taking that room from the layout:
+ * the row is measured that much taller (its clip then leaves space for an enlarged card) and
+ * reports its original height.
+ */
+private fun Modifier.bleedVertically(bleedPx: Int): Modifier =
+    if (bleedPx <= 0) {
+        this
+    } else {
+        layout { measurable, constraints ->
+            val placeable = measurable.measure(constraints)
+            layout(placeable.width, (placeable.height - 2 * bleedPx).coerceAtLeast(0)) {
+                placeable.placeRelative(0, -bleedPx)
+            }
+        }
+    }
 
 /** The row's focus ring, over all of its cards. */
 @Composable
@@ -440,6 +464,10 @@ private fun RowFocusRing(glide: RowFocusGlide, startPaddingPx: Int) {
                 val size = glide.ringSize
                 val placeable = measurable.measure(Constraints.fixed(size.width, size.height))
                 layout(size.width, size.height) { if (size != IntSize.Zero) placeable.place(0, 0) }
+            }
+            .graphicsLayer {
+                scaleX = glide.ringScale
+                scaleY = glide.ringScale
             }
             .nuvioV2Focus(focused = true, shape = glide.ringShape, stationary = true)
     )
@@ -1195,6 +1223,17 @@ internal fun ModernRowSection(
         val rowHasFocus = remember(rowKey) { mutableStateOf(false) }
         val focusGlide = remember { RowFocusGlide() }
         val focusGlideScope = rememberCoroutineScope()
+        val rowFocusScale = LocalPosterFocusScale.current
+        val rowDensity = androidx.compose.ui.platform.LocalDensity.current
+        val rowBleedPx = if (rowFocusScale > 1.001f) {
+            with(rowDensity) {
+                (((rowFocusScale - 1f) / 2f) * maxOf(portraitCatalogCardHeight, landscapeCatalogCardHeight).toPx()).roundToInt() +
+                    4.dp.roundToPx()
+            }
+        } else {
+            0
+        }
+        val rowBleed = with(rowDensity) { rowBleedPx.toDp() }
         CompositionLocalProvider(
             LocalBringIntoViewSpec provides horizontalBringIntoViewSpec,
             LocalRowFocusGlide provides focusGlide
@@ -1210,6 +1249,7 @@ internal fun ModernRowSection(
             LazyRow(
                 state = rowListState,
                 modifier = Modifier
+                    .bleedVertically(rowBleedPx)
                     .recompositionHighlighter()
                     .focusRequester(rowFocusRequester)
                     // Entering the row goes to the card it is pointed at, also when that card asked for
@@ -1243,7 +1283,7 @@ internal fun ModernRowSection(
                         if (!it.hasFocus) focusGlide.clear()
                     }
                     .focusGroup(),
-                contentPadding = PaddingValues(start = rowStartPadding, end = ROW_END_PADDING),
+                contentPadding = PaddingValues(start = rowStartPadding, top = rowBleed, end = ROW_END_PADDING, bottom = rowBleed),
                 horizontalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.md)
             ) {
                 itemsIndexed(
@@ -1471,6 +1511,7 @@ private fun ModernCarouselCard(
     } else {
         cardWidth
     }
+    val focusScale = LocalPosterFocusScale.current
     val animatedCardWidthState = if (focusedPosterBackdropExpandEnabled) {
         animateDpAsState(
             targetValue = targetCardWidth,
@@ -1732,7 +1773,18 @@ private fun ModernCarouselCard(
                 .height(cardHeight)
                 // One description per card: the artwork, badges and overlays inside are not read one by one.
                 .semantics { contentDescription = cardDescription }
-                .rowFocusRing(isFocused, cardShape)
+                // The poster under the remote is enlarged by the "Selected poster size" setting.
+                .then(
+                    if (isFocused && focusScale > 1.001f) {
+                        Modifier.graphicsLayer {
+                            scaleX = focusScale
+                            scaleY = focusScale
+                        }
+                    } else {
+                        Modifier
+                    }
+                )
+                .rowFocusRing(isFocused, cardShape, focusScale)
                 .focusRequester(focusRequester)
                 .onFocusChanged {
                     isFocused = it.isFocused
