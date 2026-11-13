@@ -85,6 +85,7 @@ fun GridContentCard(
     onFocused: () -> Unit = {}
 ) {
     val isV2 = LocalV2Appearance.current != null
+    val posterFocusScale = LocalPosterFocusScale.current
     val cardShape = remember(posterCardStyle.cornerRadius) { RoundedCornerShape(posterCardStyle.cornerRadius) }
     val cardDepthStyle = LocalCardDepthStyle.current
     val density = LocalDensity.current
@@ -119,6 +120,8 @@ fun GridContentCard(
     Column(
         modifier = modifier
             .width(landscapeCardWidth)
+            // The enlarged poster must draw over its neighbours.
+            .then(if (isV2 && isFocused) Modifier.zIndex(1f) else Modifier)
             .recompositionHighlighter()
     ) {
         Card(
@@ -133,6 +136,18 @@ fun GridContentCard(
                 .then(
                     if (globalLandscape) Modifier.fillMaxWidth().aspectRatio(PosterShape.LANDSCAPE.aspectRatio())
                     else Modifier.width(posterCardStyle.width).height(cardHeight)
+                )
+                // New look: the enlarged poster and its focus ring are scaled together, so the ring stays
+                // around the edge of the poster instead of ending up inside it.
+                .then(
+                    if (isV2 && isFocused && posterFocusScale > 1.001f) {
+                        Modifier.graphicsLayer {
+                            scaleX = posterFocusScale
+                            scaleY = posterFocusScale
+                        }
+                    } else {
+                        Modifier
+                    }
                 )
                 .nuvioV2Focus(isFocused, cardShape, stationary = true)
                 .then(
@@ -197,7 +212,7 @@ fun GridContentCard(
                     shape = cardShape
                 )
             ),
-            scale = CardDefaults.scale(focusedScale = LocalPosterFocusScale.current)
+            scale = CardDefaults.scale(focusedScale = if (isV2) 1f else posterFocusScale)
         ) {
             Box(
                 modifier = Modifier

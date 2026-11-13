@@ -119,6 +119,7 @@ fun ContentCard(
     onClick: () -> Unit = {}
 ) {
     val isV2 = LocalV2Appearance.current != null
+    val posterFocusScale = LocalPosterFocusScale.current
     val artworkAccent = if (isV2) com.nuvio.tv.ui.v2.appearance.LocalArtworkAccent.current else null
     // V2 focus is a layer transform. Expanded artwork belongs to the Home hero,
     // never a changing LazyRow item width.
@@ -245,6 +246,8 @@ fun ContentCard(
         horizontalAlignment = Alignment.Start,
         modifier = modifier
             .width(animatedCardWidth)
+            // The enlarged poster must draw over its neighbours.
+            .then(if (isV2 && isFocused) Modifier.zIndex(1f) else Modifier)
             .recompositionHighlighter()
     ) {
         val context = LocalContext.current
@@ -338,6 +341,18 @@ fun ContentCard(
             },
             modifier = Modifier
                 .fillMaxWidth()
+                // New look: the enlarged poster and its focus ring are scaled together, so the ring stays
+                // around the edge of the poster instead of ending up inside it.
+                .then(
+                    if (isV2 && isFocused && posterFocusScale > 1.001f) {
+                        Modifier.graphicsLayer {
+                            scaleX = posterFocusScale
+                            scaleY = posterFocusScale
+                        }
+                    } else {
+                        Modifier
+                    }
+                )
                 .nuvioV2Focus(isFocused, cardShape, stationary = true)
                 .onFocusChanged { state ->
                     val focusedNow = state.isFocused
@@ -414,7 +429,7 @@ fun ContentCard(
                     shape = cardShape
                 )
             ),
-            scale = CardDefaults.scale(focusedScale = LocalPosterFocusScale.current)
+            scale = CardDefaults.scale(focusedScale = if (isV2) 1f else posterFocusScale)
         ) {
             Box(
                 modifier = Modifier
