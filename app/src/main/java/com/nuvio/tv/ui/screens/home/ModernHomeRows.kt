@@ -1601,11 +1601,13 @@ private fun ModernCarouselCard(
     } else {
         cardWidth
     }
-    val requestWidthPx = remember(maxRequestCardWidth, density) {
-        with(density) { maxRequestCardWidth.roundToPx() }.coerceAtLeast(1)
+    // Decode with enough pixels for the enlarged (focused) size. Otherwise the picture, including
+    // any ratings printed on the poster itself, is stretched when the card grows and looks blurry.
+    val requestWidthPx = remember(maxRequestCardWidth, density, focusScale) {
+        (with(density) { maxRequestCardWidth.roundToPx() } * focusScale).roundToInt().coerceAtLeast(1)
     }
-    val requestHeightPx = remember(cardHeight, density) {
-        with(density) { cardHeight.roundToPx() }.coerceAtLeast(1)
+    val requestHeightPx = remember(cardHeight, density, focusScale) {
+        (with(density) { cardHeight.roundToPx() } * focusScale).roundToInt().coerceAtLeast(1)
     }
 
     val homeImagePriority = com.nuvio.tv.core.image.LocalHomePosterPriority.current
