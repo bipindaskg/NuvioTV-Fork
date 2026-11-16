@@ -67,6 +67,11 @@ class TmdbMetadataService(
     private val posterArtInFlight = ConcurrentHashMap<String, CompletableDeferred<TmdbPosterArt?>>()
     private val episodeInFlight = ConcurrentHashMap<String, CompletableDeferred<Map<Pair<Int, Int>, TmdbEpisodeEnrichment>>>()
     private val personCache = ConcurrentHashMap<String, PersonDetail>()
+
+    /** Last reason a person-detail fetch failed (shown on the cast error screen for diagnosis). */
+    @Volatile
+    var lastPersonError: String? = null
+        private set
     private val moreLikeThisCache = ConcurrentHashMap<String, List<MetaPreview>>()
     private val entityHeaderCache = ConcurrentHashMap<String, TmdbEntityHeader>()
     private val entityRailCache = ConcurrentHashMap<String, List<MetaPreview>>()
@@ -1500,6 +1505,7 @@ class TmdbMetadataService(
             val normalizedLanguage = normalizeTmdbLanguage(language)
             val cacheKey = "$personId:${preferCrewCredits?.toString() ?: "auto"}:$normalizedLanguage"
             personCache[cacheKey]?.let { return@withContext it }
+            lastPersonError = null
 
             try {
                 val (localizedPerson, localizedCredits) = coroutineScope {
@@ -1631,8 +1637,11 @@ class TmdbMetadataService(
                 )
                 personCache[cacheKey] = detail
                 detail
-            } catch (e: Exception) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
                 Log.e(TAG, "Failed to fetch person detail: ${e.message}", e)
+                lastPersonError = "build: ${e.javaClass.simpleName}: ${e.message?.take(120)}"
                 null
             }
         }
@@ -1651,15 +1660,18 @@ class TmdbMetadataService(
                 if (response.isSuccessful) {
                     response.body()?.let { return it }
                     Log.w(TAG, "TMDB $label: empty body")
+                    lastPersonError = "$label: empty body"
                 } else {
                     Log.w(TAG, "TMDB $label: HTTP ${response.code()}")
                     val code = response.code()
+                    lastPersonError = "$label: HTTP $code"
                     if (code in 400..499 && code != 429) return null
                 }
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Log.w(TAG, "TMDB $label failed (attempt ${attempt + 1}): ${e.javaClass.simpleName}: ${e.message}")
+                lastPersonError = "$label: ${e.javaClass.simpleName}: ${e.message?.take(120)}"
             }
             if (attempt == 0) delay(500)
         }

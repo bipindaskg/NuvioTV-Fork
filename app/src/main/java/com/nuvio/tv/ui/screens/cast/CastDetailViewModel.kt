@@ -94,8 +94,10 @@ class CastDetailViewModel @Inject constructor(
                     } else detail
                     _uiState.value = CastDetailUiState.Success(overlaidDetail)
                 } else {
+                    val reason = tmdbMetadataService.lastPersonError
                     _uiState.value = CastDetailUiState.Error(
-                        context.getString(R.string.cast_error_load_details_for, personName)
+                        context.getString(R.string.cast_error_load_details_for, personName) +
+                            (reason?.let { "\n($it)" } ?: "")
                     )
                 }
             } catch (e: Exception) {
