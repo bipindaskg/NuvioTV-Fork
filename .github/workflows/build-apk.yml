@@ -50,6 +50,7 @@ jobs:
           TRAKT_CLIENT_ID: ${{ secrets.TRAKT_CLIENT_ID }}
           TRAKT_CLIENT_SECRET: ${{ secrets.TRAKT_CLIENT_SECRET }}
           TRAKT_REDIRECT_URI: ${{ secrets.TRAKT_REDIRECT_URI }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: |
           if [ -n "$LOCAL_PROPERTIES_BASE64" ]; then
             printf '%s' "$LOCAL_PROPERTIES_BASE64" | base64 --decode > local.properties
@@ -80,6 +81,15 @@ jobs:
             fi
           else
             echo "TRAKT_CLIENT_ID secret not set: Trakt sign-in will be unavailable in this build."
+          fi
+
+          # TMDB API key from a plain repository secret (cast/person details, metadata).
+          TMDB_KEY="$(printf '%s' "$TMDB_API_KEY" | tr -d '[:space:]')"
+          if [ -n "$TMDB_KEY" ]; then
+            sed -i '/^TMDB_API_KEY=/d' local.properties
+            printf 'TMDB_API_KEY=%s\n' "$TMDB_KEY" >> local.properties
+          else
+            echo "TMDB_API_KEY secret not set: TMDB features (cast details etc.) will fail in this build."
           fi
 
           if [ -n "$LOCAL_DEV_PROPERTIES_BASE64" ]; then
