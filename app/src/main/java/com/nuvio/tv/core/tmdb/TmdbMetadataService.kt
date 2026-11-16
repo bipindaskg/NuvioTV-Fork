@@ -36,6 +36,7 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Semaphore
@@ -1501,15 +1502,32 @@ class TmdbMetadataService(
             personCache[cacheKey]?.let { return@withContext it }
 
             try {
-                val (person, credits) = coroutineScope {
+                val (localizedPerson, localizedCredits) = coroutineScope {
                     val personDeferred = async {
-                        tmdbApi.getPersonDetails(personId, TMDB_API_KEY, normalizedLanguage).body()
+                        tmdbPersonCall("person") {
+                            tmdbApi.getPersonDetails(personId, TMDB_API_KEY, normalizedLanguage)
+                        }
                     }
                     val creditsDeferred = async {
-                        tmdbApi.getPersonCombinedCredits(personId, TMDB_API_KEY, normalizedLanguage).body()
+                        tmdbPersonCall("credits") {
+                            tmdbApi.getPersonCombinedCredits(personId, TMDB_API_KEY, normalizedLanguage)
+                        }
                     }
                     Pair(personDeferred.await(), creditsDeferred.await())
                 }
+
+                // A failed/unsupported localized request must not blank the whole screen:
+                // fall back to English before giving up.
+                val person = localizedPerson ?: if (normalizedLanguage != "en") {
+                    tmdbPersonCall("person-en") {
+                        tmdbApi.getPersonDetails(personId, TMDB_API_KEY, "en")
+                    }
+                } else null
+                val credits = localizedCredits ?: if (normalizedLanguage != "en") {
+                    tmdbPersonCall("credits-en") {
+                        tmdbApi.getPersonCombinedCredits(personId, TMDB_API_KEY, "en")
+                    }
+                } else null
 
                 if (person == null) return@withContext null
 
@@ -1618,6 +1636,35 @@ class TmdbMetadataService(
                 null
             }
         }
+
+    /**
+     * Person endpoints: retries once on transient failures (timeouts, 5xx, 429) and never throws,
+     * so one flaky request cannot turn into "Could not load details".
+     */
+    private suspend fun <T> tmdbPersonCall(
+        label: String,
+        call: suspend () -> retrofit2.Response<T>
+    ): T? {
+        repeat(2) { attempt ->
+            try {
+                val response = call()
+                if (response.isSuccessful) {
+                    response.body()?.let { return it }
+                    Log.w(TAG, "TMDB $label: empty body")
+                } else {
+                    Log.w(TAG, "TMDB $label: HTTP ${response.code()}")
+                    val code = response.code()
+                    if (code in 400..499 && code != 429) return null
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "TMDB $label failed (attempt ${attempt + 1}): ${e.javaClass.simpleName}: ${e.message}")
+            }
+            if (attempt == 0) delay(500)
+        }
+        return null
+    }
 
     private fun shouldPreferCrewCredits(knownForDepartment: String?): Boolean {
         val department = knownForDepartment?.trim()?.lowercase() ?: return false
