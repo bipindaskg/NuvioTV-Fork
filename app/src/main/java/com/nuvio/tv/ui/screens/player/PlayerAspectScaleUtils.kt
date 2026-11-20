@@ -4,11 +4,14 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.view.SurfaceView
 import android.view.TextureView
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.annotation.StringRes
 import androidx.media3.ui.PlayerView
 import com.nuvio.tv.R
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 enum class AspectMode(@StringRes val labelResId: Int) {
@@ -195,8 +198,46 @@ internal fun applyExoAspectMode(playerView: PlayerView, mode: AspectMode) {
     contentFrame?.let(::resetAspectTransform)
     surfaceView?.let(::resetAspectTransform)
 
+    // Uniform zoom/crop modes: size the video surface itself (the same way PlayerView's own
+    // RESIZE_MODE_ZOOM does) instead of scaling the SurfaceView with a View transform.
+    // A transformed SurfaceView is rescaled by the display compositor/HW video plane, which on
+    // many TVs gives soft, distorted output; a real surface of the final size is scaled once,
+    // with the correct aspect ratio, exactly like normal playback.
+    val scale = resolveAspectScale(mode = mode, viewAspect = viewAspect, videoAspect = videoAspect)
+    val uniformZoom = abs(scale.scaleX - scale.scaleY) < 0.001f
+    if (contentFrame != null && uniformZoom) {
+        setContentFrameZoom(playerView, contentFrame, scale.scaleX)
+        return
+    }
+
+    // Non-uniform (Stretch) keeps the transform path; make sure the frame is back to normal size.
+    contentFrame?.let { setContentFrameZoom(playerView, it, 1.0f) }
     applyAspectScale(targetView, mode, viewAspect, videoAspect)
     centerTargetInPlayer(playerView, targetView)
+}
+
+/**
+ * Resizes [contentFrame] to [zoom] x the player size (centered, clipped by the PlayerView).
+ * Its AspectRatioFrameLayout then fits the video inside that larger box, which is a true
+ * uniform zoom/crop with no aspect distortion. zoom == 1 restores match_parent.
+ */
+private fun setContentFrameZoom(playerView: PlayerView, contentFrame: View, zoom: Float) {
+    val lp = contentFrame.layoutParams as? FrameLayout.LayoutParams ?: return
+    val safeZoom = if (zoom.isFinite() && zoom > 1.0005f) zoom else 1.0f
+    val targetWidth: Int
+    val targetHeight: Int
+    if (safeZoom == 1.0f || playerView.width <= 0 || playerView.height <= 0) {
+        targetWidth = ViewGroup.LayoutParams.MATCH_PARENT
+        targetHeight = ViewGroup.LayoutParams.MATCH_PARENT
+    } else {
+        targetWidth = (playerView.width * safeZoom).roundToInt()
+        targetHeight = (playerView.height * safeZoom).roundToInt()
+    }
+    if (lp.width == targetWidth && lp.height == targetHeight && lp.gravity == Gravity.CENTER) return
+    lp.width = targetWidth
+    lp.height = targetHeight
+    lp.gravity = Gravity.CENTER
+    contentFrame.layoutParams = lp
 }
 
 internal fun applyAspectMode(playerView: PlayerView, mode: AspectMode) {
