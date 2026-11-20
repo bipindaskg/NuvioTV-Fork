@@ -945,6 +945,7 @@ fun PlayerScreen(
             RemoteButtonJob.SUBTITLES -> whenAvailable(PlayerControlAction.SUBTITLES, PlayerEvent.OnShowSubtitleOverlay)
             RemoteButtonJob.SUB_SYNC -> whenAvailable(PlayerControlAction.SUB_SYNC, PlayerEvent.OnShowSubtitleDelayOverlay)
             RemoteButtonJob.ASPECT -> whenAvailable(PlayerControlAction.ASPECT, PlayerEvent.OnToggleAspectRatio)
+            RemoteButtonJob.RENDERER -> whenAvailable(PlayerControlAction.RENDERER, PlayerEvent.OnToggleZoomRenderer)
             RemoteButtonJob.NEXT_EPISODE -> whenAvailable(PlayerControlAction.NEXT_EPISODE, PlayerEvent.OnPlayNextEpisode)
             RemoteButtonJob.RESTART -> whenAvailable(PlayerControlAction.RESTART, PlayerEvent.OnSeekTo(0L))
             RemoteButtonJob.EXTERNAL -> {

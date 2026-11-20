@@ -93,6 +93,7 @@ internal fun remoteJobLabel(context: Context, job: RemoteButtonJob): String = co
     RemoteButtonJob.RESTART -> R.string.player_pill_restart
     RemoteButtonJob.SPEED -> R.string.cd_playback_speed
     RemoteButtonJob.ASPECT -> R.string.cd_aspect_ratio
+    RemoteButtonJob.RENDERER -> R.string.cd_toggle_zoom_renderer
     RemoteButtonJob.WATCH_PARTY -> R.string.party_title
     RemoteButtonJob.EXTERNAL -> R.string.cd_open_external_player
     RemoteButtonJob.CHAPTERS_LIST -> R.string.remote_buttons_job_chapters_list

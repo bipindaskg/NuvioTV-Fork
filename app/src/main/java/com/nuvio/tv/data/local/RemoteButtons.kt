@@ -31,6 +31,7 @@ enum class RemoteButtonJob(val id: String) {
     RESTART("restart"),
     SPEED("speed"),
     ASPECT("aspect"),
+    RENDERER("renderer"),
     WATCH_PARTY("watch_party"),
     EXTERNAL("external"),
     LEAVE("leave");
