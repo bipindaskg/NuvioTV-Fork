@@ -1,6 +1,5 @@
 package com.nuvio.tv.ui.screens.player
 
-import android.graphics.Rect
 import android.graphics.RectF
 import android.view.SurfaceView
 import android.view.TextureView
@@ -9,6 +8,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.annotation.StringRes
+import androidx.media3.common.C
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.nuvio.tv.R
 import kotlin.math.abs
@@ -187,55 +189,86 @@ internal fun resolveAspectScale(mode: AspectMode, viewAspect: Float, videoAspect
     }
 }
 
-internal fun applyExoAspectMode(playerView: PlayerView, mode: AspectMode) {
+/**
+ * Applies [mode] to an Exo PlayerView WITHOUT ever letting the video surface extend past the
+ * screen.
+ *
+ * Why: some TV SoCs (seen on the Vu Android TV) put the SurfaceView on a hardware video plane that
+ * cannot clip. When a transformed / oversized surface is partly off-screen, the whole frame gets
+ * squeezed into the visible part, so "zoom" shows the full picture distorted instead of cropped.
+ *
+ * Instead the surface is sized to the visible part of the zoomed picture (always inside the
+ * screen) and the codec crops the video to that surface (SCALE_TO_FIT_WITH_CROPPING). The result
+ * is a true uniform zoom/crop with no reshaping.
+ */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+internal fun applyExoAspectMode(
+    playerView: PlayerView,
+    mode: AspectMode,
+    manageResizeMode: Boolean = true
+) {
     val contentFrame = playerView.findViewById<View>(androidx.media3.ui.R.id.exo_content_frame)
     val surfaceView = resolveVideoSurfaceView(playerView)
-    val targetView = contentFrame ?: surfaceView ?: playerView
-    val viewAspect = readViewAspectRatio(playerView.width, playerView.height)
+    val viewWidth = playerView.width
+    val viewHeight = playerView.height
+    val viewAspect = readViewAspectRatio(viewWidth, viewHeight)
     val videoAspect = readExoVideoAspectRatio(playerView)
 
+    // No view transforms any more; clear anything left over from older code paths.
     resetAspectTransform(playerView)
     contentFrame?.let(::resetAspectTransform)
     surfaceView?.let(::resetAspectTransform)
 
-    // Uniform zoom/crop modes: size the video surface itself (the same way PlayerView's own
-    // RESIZE_MODE_ZOOM does) instead of scaling the SurfaceView with a View transform.
-    // A transformed SurfaceView is rescaled by the display compositor/HW video plane, which on
-    // many TVs gives soft, distorted output; a real surface of the final size is scaled once,
-    // with the correct aspect ratio, exactly like normal playback.
     val scale = resolveAspectScale(mode = mode, viewAspect = viewAspect, videoAspect = videoAspect)
-    val uniformZoom = abs(scale.scaleX - scale.scaleY) < 0.001f
-    if (contentFrame != null && uniformZoom) {
-        setContentFrameZoom(playerView, contentFrame, scale.scaleX)
-        return
+    val uniform = abs(scale.scaleX - scale.scaleY) < 0.001f
+    val zoom = scale.scaleX
+    val safeVideoAspect = videoAspect?.takeIf { it > 0f }
+
+    var resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+    var scalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+    var targetWidth = ViewGroup.LayoutParams.MATCH_PARENT
+    var targetHeight = ViewGroup.LayoutParams.MATCH_PARENT
+
+    if (viewWidth > 0 && viewHeight > 0 && safeVideoAspect != null) {
+        if (!uniform) {
+            // Stretch: fill the whole screen and let the picture be reshaped on purpose.
+            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+        } else if (zoom > 1.0005f) {
+            // Size of the video when fitted inside the screen.
+            val fitWidth: Float
+            val fitHeight: Float
+            if (safeVideoAspect > viewAspect) {
+                fitWidth = viewWidth.toFloat()
+                fitHeight = viewWidth / safeVideoAspect
+            } else {
+                fitHeight = viewHeight.toFloat()
+                fitWidth = viewHeight * safeVideoAspect
+            }
+            // Visible part of the zoomed picture, clamped to the screen.
+            targetWidth = minOf(viewWidth.toFloat(), fitWidth * zoom).roundToInt()
+            targetHeight = minOf(viewHeight.toFloat(), fitHeight * zoom).roundToInt()
+            // The surface is exactly that box; the codec covers it and crops the overflow.
+            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+            scalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
+        }
     }
 
-    // Non-uniform (Stretch) keeps the transform path; make sure the frame is back to normal size.
-    contentFrame?.let { setContentFrameZoom(playerView, it, 1.0f) }
-    applyAspectScale(targetView, mode, viewAspect, videoAspect)
-    centerTargetInPlayer(playerView, targetView)
+    if (manageResizeMode && playerView.resizeMode != resizeMode) {
+        playerView.resizeMode = resizeMode
+    }
+    contentFrame?.let { setContentFrameSize(it, targetWidth, targetHeight) }
+    (playerView.player as? ExoPlayer)?.let { exoPlayer ->
+        if (exoPlayer.videoScalingMode != scalingMode) {
+            exoPlayer.videoScalingMode = scalingMode
+        }
+    }
 }
 
-/**
- * Resizes [contentFrame] to [zoom] x the player size (centered, clipped by the PlayerView).
- * Its AspectRatioFrameLayout then fits the video inside that larger box, which is a true
- * uniform zoom/crop with no aspect distortion. zoom == 1 restores match_parent.
- */
-private fun setContentFrameZoom(playerView: PlayerView, contentFrame: View, zoom: Float) {
+private fun setContentFrameSize(contentFrame: View, width: Int, height: Int) {
     val lp = contentFrame.layoutParams as? FrameLayout.LayoutParams ?: return
-    val safeZoom = if (zoom.isFinite() && zoom > 1.0005f) zoom else 1.0f
-    val targetWidth: Int
-    val targetHeight: Int
-    if (safeZoom == 1.0f || playerView.width <= 0 || playerView.height <= 0) {
-        targetWidth = ViewGroup.LayoutParams.MATCH_PARENT
-        targetHeight = ViewGroup.LayoutParams.MATCH_PARENT
-    } else {
-        targetWidth = (playerView.width * safeZoom).roundToInt()
-        targetHeight = (playerView.height * safeZoom).roundToInt()
-    }
-    if (lp.width == targetWidth && lp.height == targetHeight && lp.gravity == Gravity.CENTER) return
-    lp.width = targetWidth
-    lp.height = targetHeight
+    if (lp.width == width && lp.height == height && lp.gravity == Gravity.CENTER) return
+    lp.width = width
+    lp.height = height
     lp.gravity = Gravity.CENTER
     contentFrame.layoutParams = lp
 }
@@ -284,27 +317,6 @@ private fun resetAspectTransform(view: View) {
     if (view.height > 0) {
         view.pivotY = view.height / 2.0f
     }
-}
-
-private fun centerTargetInPlayer(playerView: PlayerView, targetView: View) {
-    if (
-        targetView === playerView ||
-        playerView.width <= 0 ||
-        playerView.height <= 0 ||
-        targetView.width <= 0 ||
-        targetView.height <= 0
-    ) {
-        return
-    }
-
-    val targetRect = Rect(0, 0, targetView.width, targetView.height)
-    playerView.offsetDescendantRectToMyCoords(targetView, targetRect)
-    val playerCenterX = playerView.width / 2.0f
-    val playerCenterY = playerView.height / 2.0f
-    val targetCenterX = targetRect.left + targetRect.width() / 2.0f
-    val targetCenterY = targetRect.top + targetRect.height() / 2.0f
-    targetView.translationX = playerCenterX - targetCenterX
-    targetView.translationY = playerCenterY - targetCenterY
 }
 
 private fun resolveVideoSurfaceView(playerView: PlayerView): View? {
