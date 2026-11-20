@@ -39,6 +39,8 @@ import com.nuvio.tv.domain.model.PlayerChromeStyle
 import com.nuvio.tv.domain.model.VisualStyle
 import com.nuvio.tv.ui.screens.player.PlayerBadge
 import com.nuvio.tv.ui.screens.player.PlayerBadges
+import com.nuvio.tv.ui.screens.player.ZoomRendererBadge
+import com.nuvio.tv.ui.screens.player.showsZoomRendererBadge
 import com.nuvio.tv.ui.screens.player.*
 import com.nuvio.tv.ui.v2.appearance.LocalV2Appearance
 import com.nuvio.tv.ui.v2.components.*
@@ -127,7 +129,11 @@ fun V2PlayerControls(
                 } else Text(title, color = Color.White, style = MaterialTheme.typography.titleMedium,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 12.dp))
                 PlayerSecondaryMetadata(uiState, Modifier.padding(start = 12.dp), rememberCurrentChapter(viewModel, uiState.chapters))
-                if (playerBadges.isNotEmpty()) PlayerBadges(playerBadges, Modifier.padding(start = 12.dp))
+                if (playerBadges.isNotEmpty() || uiState.showsZoomRendererBadge()) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    if (playerBadges.isNotEmpty()) PlayerBadges(playerBadges, Modifier.padding(start = 12.dp))
+                    Spacer(Modifier.weight(1f))
+                    if (uiState.showsZoomRendererBadge()) ZoomRendererBadge(Modifier.padding(end = 12.dp))
+                }
             }
             Column(Modifier.fillMaxWidth()
                 .then(if (deck) Modifier.nuvioGlass(GlassRole.CONTROL, shape = RoundedCornerShape(12.dp)) else Modifier)

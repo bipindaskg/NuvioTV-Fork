@@ -3605,6 +3605,9 @@ private fun PlayerControlsOverlay(
                                 .reportRightEdge("badges", titleRights)
                         )
                     }
+                    if (uiState.showsZoomRendererBadge()) {
+                        ZoomRendererBadge(Modifier.padding(vertical = NuvioTheme.spacing.xs))
+                    }
                 }
             }
                 }

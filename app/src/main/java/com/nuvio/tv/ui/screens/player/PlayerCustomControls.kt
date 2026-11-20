@@ -222,7 +222,11 @@ internal fun PlayerCustomControls(
                 else Text(title, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.titleLarge)
                 PlayerSecondaryMetadata(state, chapter = rememberCurrentChapter(viewModel, state.chapters))
-                if (playerBadges.isNotEmpty()) PlayerBadges(playerBadges)
+                if (playerBadges.isNotEmpty() || state.showsZoomRendererBadge()) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    if (playerBadges.isNotEmpty()) PlayerBadges(playerBadges)
+                    Spacer(Modifier.weight(1f))
+                    if (state.showsZoomRendererBadge()) ZoomRendererBadge()
+                }
             }
             }, timeline = {
             if (hasSeekTimeline) Box(Modifier.fillMaxWidth().onGloballyPositioned { coordinates ->
