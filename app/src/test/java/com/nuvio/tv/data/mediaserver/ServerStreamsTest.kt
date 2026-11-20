@@ -105,10 +105,10 @@ class ServerStreamsTest {
 
     @Test
     fun pointsEachServerAtItsOwnLogo() {
-        assertEquals("android.resource://com.nuvio.tv.test/${R.raw.jellyfin_logo}", serverLogoUri("jellyfin", "com.nuvio.tv.test"))
-        assertEquals("android.resource://com.nuvio.tv.test/${R.raw.emby_logo}", serverLogoUri("emby", "com.nuvio.tv.test"))
-        assertEquals("android.resource://com.nuvio.tv.test/${R.raw.silo_logo}", serverLogoUri("silo", "com.nuvio.tv.test"))
-        assertNull(serverLogoUri("fake", "com.nuvio.tv.test"))
+        assertEquals("android.resource://com.nuvio.bipindas/${R.raw.jellyfin_logo}", serverLogoUri("jellyfin", "com.nuvio.bipindas"))
+        assertEquals("android.resource://com.nuvio.bipindas/${R.raw.emby_logo}", serverLogoUri("emby", "com.nuvio.bipindas"))
+        assertEquals("android.resource://com.nuvio.bipindas/${R.raw.silo_logo}", serverLogoUri("silo", "com.nuvio.bipindas"))
+        assertNull(serverLogoUri("fake", "com.nuvio.bipindas"))
     }
 
     private fun streams(provider: FakeServerProvider, fullSourceText: Boolean = false): ServerStreams {

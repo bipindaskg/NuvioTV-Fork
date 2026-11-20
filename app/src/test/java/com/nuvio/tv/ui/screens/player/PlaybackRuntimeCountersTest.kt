@@ -9,7 +9,7 @@ import org.junit.Test
 class PlaybackRuntimeCountersTest {
 
     private val status = """
-        Name:	com.nuvio.tv.test
+        Name:	com.nuvio.bipindas
         VmPeak:	 4194304 kB
         VmRSS:	  421888 kB
         RssAnon:	  300000 kB

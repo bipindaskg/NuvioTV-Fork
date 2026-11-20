@@ -30,7 +30,7 @@ class AuthDiagnosticReportRepositoryTest {
 
     private fun report(attempt: String) = AuthDiagnosticReportRequestDto(
         schemaVersion = 1, startedAtMs = 1, endedAtMs = 2, elapsedMs = 1,
-        app = AuthDiagnosticAppDto("com.nuvio.tv.test", "1.0", 1, false),
+        app = AuthDiagnosticAppDto("com.nuvio.bipindas", "1.0", 1, false),
         device = AuthDiagnosticDeviceDto("", "", "", "", "", 30, emptyList()),
         environment = AuthDiagnosticEnvironmentDto("", null, "", null, null, false),
         flow = AuthDiagnosticFlowDto("startup", attempt, null),

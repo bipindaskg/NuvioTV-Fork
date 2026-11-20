@@ -18,14 +18,14 @@ class ApkInstallerValidationTest {
     private val pm = mockk<PackageManager>()
     private val signer = mockk<Signature>()
     private val installed = PackageInfo().apply {
-        packageName = "com.nuvio.tv.test"; versionCode = 1373; signatures = arrayOf(signer)
+        packageName = "com.nuvio.bipindas"; versionCode = 1373; signatures = arrayOf(signer)
     }
     private val archive = PackageInfo().apply {
-        packageName = "com.nuvio.tv.test"; versionCode = 1374; signatures = arrayOf(signer)
+        packageName = "com.nuvio.bipindas"; versionCode = 1374; signatures = arrayOf(signer)
     }
     private fun validate(expected: Long? = 1374, size: Long? = 1) {
         val apk = temp.newFile().apply { writeBytes(byteArrayOf(1)) }
-        every { context.packageName } returns "com.nuvio.tv.test"
+        every { context.packageName } returns "com.nuvio.bipindas"
         every { context.packageManager } returns pm
         every { pm.getPackageArchiveInfo(any(), any<Int>()) } returns archive
         every { pm.getPackageInfo(any<String>(), any<Int>()) } returns installed

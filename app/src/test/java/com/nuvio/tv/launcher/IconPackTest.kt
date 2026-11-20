@@ -25,14 +25,14 @@ class IconPackTest {
         Regex("<item component=\"ComponentInfo\\{([^/]+)/([^}]+)\\}\" drawable=\"([a-z_]+)\" />")
             .findAll(appfilter)
             .associate { match ->
-                assertEquals("com.nuvio.tv.test", match.groupValues[1])
+                assertEquals("com.nuvio.bipindas", match.groupValues[1])
                 match.groupValues[2] to match.groupValues[3]
             }
 
     @Test
     fun releasePackageMatchesTheAppfilter() {
         val gradle = listOf(File("build.gradle.kts"), File("app/build.gradle.kts")).first { it.isFile }.readText()
-        assertTrue(gradle.contains("applicationId = \"com.nuvio.tv.test\""))
+        assertTrue(gradle.contains("applicationId = \"com.nuvio.bipindas\""))
     }
 
     @Test
