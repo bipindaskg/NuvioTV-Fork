@@ -106,6 +106,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -2775,18 +2776,23 @@ private fun ExoPlayerSurface(
         }
     }
 
-    AndroidView(
-        factory = { playerView },
-        modifier = modifier.focusProperties { canFocus = false },
-        update = {
-            it.syncLibassOverlay(
-                player = player,
-                enabled = useLibass,
-                renderMode = libassRenderMode
-            )
-            latestBindSubtitleView(it.subtitleView)
-        }
-    )
+    // key(playerView): AndroidView only calls its factory once, so when the renderer is switched
+    // (SurfaceView <-> TextureView) and playerView is rebuilt, the host must be recreated too,
+    // otherwise the stale, detached view stays on screen (black video).
+    key(playerView) {
+        AndroidView(
+            factory = { playerView },
+            modifier = modifier.focusProperties { canFocus = false },
+            update = {
+                it.syncLibassOverlay(
+                    player = player,
+                    enabled = useLibass,
+                    renderMode = libassRenderMode
+                )
+                latestBindSubtitleView(it.subtitleView)
+            }
+        )
+    }
 
     DisposableEffect(playerView, player) {
         if (playerView.player !== player) {
