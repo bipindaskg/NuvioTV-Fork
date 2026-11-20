@@ -2748,8 +2748,16 @@ private fun ExoPlayerSurface(
     val latestUseLibass by rememberUpdatedState(useLibass)
     val latestLibassRenderMode by rememberUpdatedState(libassRenderMode)
     val latestMetricsCallback by rememberUpdatedState(onSubtitleTextMetricsChanged)
-    val playerView = remember(context, player) {
-        PlayerView(context).apply {
+    // Non-tunneled playback renders through a TextureView so zoom/crop is GPU-composited and exact.
+    // A SurfaceView on a hardware video plane gets squeezed (not cropped) on some TVs when it is
+    // scaled past the screen edge. Tunneled playback needs a SurfaceView.
+    val playerView = remember(context, player, tunnelingEnabled) {
+        (if (tunnelingEnabled) {
+            PlayerView(context)
+        } else {
+            android.view.LayoutInflater.from(context)
+                .inflate(R.layout.player_view_texture, null, false) as PlayerView
+        }).apply {
             useController = false
             isFocusable = false
             isFocusableInTouchMode = false
@@ -2952,9 +2960,9 @@ private fun PlayerView.enableComposeSurfaceSyncWorkaroundIfAvailable() {
     }
 }
 
-private fun PlayerView.applyExoAspectMode(mode: AspectMode, manageResizeMode: Boolean = true) {
+private fun PlayerView.applyExoAspectMode(mode: AspectMode) {
     setTag(R.id.player_view_aspect_mode_tag, mode)
-    applyExoAspectMode(this, mode, manageResizeMode)
+    applyExoAspectMode(this, mode)
 }
 
 private fun PlayerView.syncExoSurfaceLayout(
@@ -2962,19 +2970,15 @@ private fun PlayerView.syncExoSurfaceLayout(
     tunneledSurfaceFill: Boolean,
     aspectMode: AspectMode
 ) {
-    // Non-tunneled: applyExoAspectMode owns the resize mode (Fit / Fill) together with the
-    // surface size and codec scaling mode. Tunneled keeps its own surface-size-only control.
-    if (tunnelingEnabled) {
-        val targetResizeMode = PlayerDisplayModeUtils.exoSurfaceResizeMode(
-            tunnelingEnabled = tunnelingEnabled,
-            tunneledSurfaceFill = tunneledSurfaceFill
-        )
-        if (resizeMode != targetResizeMode) {
-            resizeMode = targetResizeMode
-        }
+    val targetResizeMode = PlayerDisplayModeUtils.exoSurfaceResizeMode(
+        tunnelingEnabled = tunnelingEnabled,
+        tunneledSurfaceFill = tunneledSurfaceFill
+    )
+    if (resizeMode != targetResizeMode) {
+        resizeMode = targetResizeMode
     }
     val appliedAspectMode = aspectModeAppliedToExoSurface(tunnelingEnabled, aspectMode)
-    applyExoAspectMode(appliedAspectMode, manageResizeMode = !tunnelingEnabled)
+    applyExoAspectMode(appliedAspectMode)
     setTag(
         R.id.player_view_libass_geometry_context_tag,
         LibassOverlayGeometryContext(
