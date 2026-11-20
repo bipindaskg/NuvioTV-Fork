@@ -1552,6 +1552,16 @@ internal fun PlayerRuntimeController.observeDeviceLocalAspectMode() {
     }
 }
 
+internal fun PlayerRuntimeController.observeDeviceLocalZoomRenderer() {
+    scope.launch {
+        deviceLocalPlayerPreferences.zoomRenderer
+            .distinctUntilChanged()
+            .collect { enabled ->
+                _uiState.update { it.copy(useZoomRenderer = enabled) }
+            }
+    }
+}
+
 internal fun PlayerRuntimeController.observeDeviceLocalTransparentLetterbox() {
     scope.launch {
         deviceLocalPlayerPreferences.transparentLetterbox

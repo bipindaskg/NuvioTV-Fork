@@ -2342,6 +2342,24 @@ fun PlayerRuntimeController.onEvent(
                 _uiState.update { it.copy(showAspectRatioIndicator = false) }
             }
         }
+        PlayerEvent.OnToggleZoomRenderer -> {
+            val enabled = !_uiState.value.useZoomRenderer
+            _uiState.update {
+                it.copy(
+                    useZoomRenderer = enabled,
+                    showAspectRatioIndicator = true,
+                    aspectRatioIndicatorText = context.getString(
+                        if (enabled) R.string.player_zoom_renderer_on else R.string.player_zoom_renderer_off
+                    )
+                )
+            }
+            scope.launch { deviceLocalPlayerPreferences.setZoomRenderer(enabled) }
+            hideAspectRatioIndicatorJob?.cancel()
+            hideAspectRatioIndicatorJob = scope.launch {
+                delay(1800)
+                _uiState.update { it.copy(showAspectRatioIndicator = false) }
+            }
+        }
         PlayerEvent.OnSwitchInternalPlayerEngine -> {
             logSwitchTrace(
                 stage = "event-switch-engine",

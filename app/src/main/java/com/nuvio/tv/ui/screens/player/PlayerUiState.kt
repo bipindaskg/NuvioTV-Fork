@@ -100,6 +100,7 @@ data class PlayerUiState(
     val pauseOverlayEnabled: Boolean = false,
     val osdClockEnabled: Boolean = true,
     val transparentLetterbox: Boolean = false,
+    val useZoomRenderer: Boolean = false,
     val playerStatsHudEnabled: Boolean = false,
     val playerStatsHudButtonAvailable: Boolean = false,
     val showPauseOverlay: Boolean = false,
@@ -424,6 +425,7 @@ sealed class PlayerEvent {
     data class OnSetSubtitleVerticalOffset(val offset: Int) : PlayerEvent()
     data object OnResetSubtitleDefaults : PlayerEvent()
     data object OnToggleAspectRatio : PlayerEvent()
+    data object OnToggleZoomRenderer : PlayerEvent()
     data object OnSwitchInternalPlayerEngine : PlayerEvent()
     data object OnSwitchToMpvPlayer : PlayerEvent()
     data object OnShowStreamInfo : PlayerEvent()

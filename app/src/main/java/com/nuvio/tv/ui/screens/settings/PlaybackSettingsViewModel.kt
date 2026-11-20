@@ -74,6 +74,7 @@ class PlaybackSettingsViewModel @Inject constructor(
     suspend fun saveControlLayout(snapshot: com.nuvio.tv.data.local.PlayerControlLayoutSnapshot,
         layout: com.nuvio.tv.data.local.PlayerControlLayout?) = playerSettingsDataStore.saveControlLayout(snapshot, layout)
     val transparentLetterbox: Flow<Boolean> = deviceLocalPlayerPreferences.transparentLetterbox
+    val zoomRenderer: Flow<Boolean> = deviceLocalPlayerPreferences.zoomRenderer
     val trailerSettings: Flow<TrailerSettings> = trailerSettingsDataStore.settings
     val torrentSettingsFlow: Flow<TorrentSettingsData> = torrentSettings.settings
     val torrentCacheState: StateFlow<TorrentCacheState> = torrentService.cacheState
@@ -274,6 +275,10 @@ class PlaybackSettingsViewModel @Inject constructor(
 
     suspend fun setOsdClockEnabled(enabled: Boolean) {
         playerSettingsDataStore.setOsdClockEnabled(enabled)
+    }
+
+    suspend fun setZoomRenderer(enabled: Boolean) {
+        deviceLocalPlayerPreferences.setZoomRenderer(enabled)
     }
 
     suspend fun setTransparentLetterbox(enabled: Boolean) {

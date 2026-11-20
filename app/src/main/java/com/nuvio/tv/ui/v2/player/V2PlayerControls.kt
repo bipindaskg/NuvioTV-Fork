@@ -43,7 +43,7 @@ import com.nuvio.tv.ui.screens.player.*
 import com.nuvio.tv.ui.v2.appearance.LocalV2Appearance
 import com.nuvio.tv.ui.v2.components.*
 
-enum class V2PlayerControl { INFO, STATS, AUDIO, SUBTITLES, SOURCES, EPISODES, CHAPTERS, RESTART, MORE, SPEED, ASPECT, EXTERNAL, ENGINE, REPORT }
+enum class V2PlayerControl { INFO, STATS, AUDIO, SUBTITLES, SOURCES, EPISODES, CHAPTERS, RESTART, MORE, SPEED, ASPECT, EXTERNAL, ENGINE, REPORT, RENDERER }
 
 /** Owned by PlayerScreen, so requesters survive a utility panel replacing the control deck. */
 @Stable
@@ -64,7 +64,9 @@ data class V2PlayerActions(
     val party: () -> Unit = {},
     val chapters: () -> Unit = {},
     /** Opens the subtitle delay window straight above the video. */
-    val subSync: () -> Unit = {}
+    val subSync: () -> Unit = {},
+    /** Switches between the hardware (accurate) and GPU zoom-capable video renderer. */
+    val renderer: () -> Unit = {}
 )
 
 private data class Utility(val id: V2PlayerControl, val icon: ImageVector, val label: String, val action: () -> Unit, val panel: Boolean = false, val enabled: Boolean = true)
@@ -102,6 +104,7 @@ fun V2PlayerControls(
     val more = buildList {
         add(Utility(V2PlayerControl.SPEED, Icons.Default.Speed, stringResource(R.string.cd_playback_speed), actions.speed, true))
         add(Utility(V2PlayerControl.ASPECT, Icons.Default.AspectRatio, stringResource(R.string.cd_aspect_ratio), actions.aspect))
+        add(Utility(V2PlayerControl.RENDERER, Icons.Default.ZoomIn, stringResource(R.string.cd_toggle_zoom_renderer), actions.renderer))
         if (!uiState.isServerStream) add(Utility(V2PlayerControl.EXTERNAL, Icons.AutoMirrored.Filled.OpenInNew, stringResource(R.string.cd_open_external_player), actions.external))
         add(Utility(V2PlayerControl.ENGINE, Icons.Default.SwapHoriz, stringResource(R.string.cd_switch_player_engine), actions.engine))
         if (uiState.playbackIssueReportsEnabled) add(Utility(V2PlayerControl.REPORT, Icons.Default.BugReport,

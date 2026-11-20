@@ -41,6 +41,7 @@ class DeviceLocalPlayerPreferences @Inject constructor(
     }
 
     private val aspectModeKey = stringPreferencesKey("aspect_mode")
+    private val zoomRendererKey = booleanPreferencesKey("zoom_renderer")
     private val transparentLetterboxKey = booleanPreferencesKey("transparent_letterbox")
     private val tunneledSurfaceFillKey = booleanPreferencesKey("tunneled_surface_fill")
     private val playerStatsHudButtonEnabledKey = booleanPreferencesKey("player_stats_hud_enabled")
@@ -78,6 +79,20 @@ class DeviceLocalPlayerPreferences @Inject constructor(
     suspend fun setAspectMode(mode: AspectMode) {
         store.edit { prefs ->
             prefs[aspectModeKey] = mode.name
+        }
+    }
+
+    /**
+     * true = Exo renders through a GPU TextureView (zoom/crop works on every TV, colours can be a
+     * little less accurate); false = hardware SurfaceView (most accurate colours and quality).
+     */
+    val zoomRenderer: Flow<Boolean> = store.data.map { prefs ->
+        prefs[zoomRendererKey] ?: false
+    }
+
+    suspend fun setZoomRenderer(enabled: Boolean) {
+        store.edit { prefs ->
+            prefs[zoomRendererKey] = enabled
         }
     }
 

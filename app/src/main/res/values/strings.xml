@@ -4199,4 +4199,9 @@
     <string name="stream_resume_from_time">Resume from %1$s</string>
     <string name="stream_resume_from_percent">Resume from %1$d%%</string>
     <string name="tvdb_metadata_credit">Metadata provided by %1$s</string>
+    <string name="cd_toggle_zoom_renderer" translatable="false">Zoom-capable renderer (on/off)</string>
+    <string name="player_zoom_renderer_on" translatable="false">Zoom renderer: ON (GPU)</string>
+    <string name="player_zoom_renderer_off" translatable="false">Zoom renderer: OFF (hardware, best colours)</string>
+    <string name="playback_zoom_renderer_title" translatable="false">Zoom-capable video renderer</string>
+    <string name="playback_zoom_renderer_sub" translatable="false">Renders Exo video through the GPU so Crop and zoom modes crop without stretching on TVs with a hardware video plane. Off uses the hardware renderer with the most accurate colours and quality.</string>
 </resources>

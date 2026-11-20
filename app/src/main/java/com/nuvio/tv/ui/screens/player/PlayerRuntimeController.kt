@@ -1051,6 +1051,7 @@ class PlayerRuntimeController(
         observeTorrentSettings()
         observeStreamBadgeSettings()
         observeDeviceLocalAspectMode()
+        observeDeviceLocalZoomRenderer()
         // Fork: observePlayerStatsHud() deliberately not armed, upstream stats HUD stays permanently dormant.
         observeDeviceLocalTransparentLetterbox()
         observeDeviceLocalTunneledSurfaceFill()

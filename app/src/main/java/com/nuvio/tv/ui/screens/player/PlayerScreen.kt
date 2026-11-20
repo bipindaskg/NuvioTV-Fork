@@ -91,6 +91,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.RestartAlt
@@ -1730,6 +1731,7 @@ fun PlayerScreen(
                             aspectMode = uiState.aspectMode,
                             tunnelingEnabled = uiState.tunnelingEnabled,
                             tunneledSurfaceFill = uiState.tunneledSurfaceFill,
+                            useZoomRenderer = uiState.useZoomRenderer,
                             useLibass = uiState.useLibass,
                             libassRenderMode = uiState.libassRenderMode,
                             subtitleStyle = uiState.effectiveSubtitleStyle,
@@ -2231,6 +2233,7 @@ fun PlayerScreen(
                         Log.d("PlayerScreen", "onToggleAspectRatio called - dispatching event")
                         viewModel.onEvent(PlayerEvent.OnToggleAspectRatio)
                     },
+                    onToggleZoomRenderer = { viewModel.onEvent(PlayerEvent.OnToggleZoomRenderer) },
                     onSwitchPlayerEngine = { viewModel.onEvent(PlayerEvent.OnSwitchInternalPlayerEngine) },
                     onReportPlaybackIssue = { viewModel.onEvent(PlayerEvent.OnReportPlaybackIssue) },
                     onToggleMoreActions = {
@@ -2728,6 +2731,7 @@ private fun ExoPlayerSurface(
     aspectMode: AspectMode,
     tunnelingEnabled: Boolean,
     tunneledSurfaceFill: Boolean,
+    useZoomRenderer: Boolean = false,
     useLibass: Boolean,
     libassRenderMode: LibassRenderMode,
     subtitleStyle: SubtitleStyleSettings,
@@ -2748,11 +2752,12 @@ private fun ExoPlayerSurface(
     val latestUseLibass by rememberUpdatedState(useLibass)
     val latestLibassRenderMode by rememberUpdatedState(libassRenderMode)
     val latestMetricsCallback by rememberUpdatedState(onSubtitleTextMetricsChanged)
-    // Non-tunneled playback renders through a TextureView so zoom/crop is GPU-composited and exact.
-    // A SurfaceView on a hardware video plane gets squeezed (not cropped) on some TVs when it is
-    // scaled past the screen edge. Tunneled playback needs a SurfaceView.
-    val playerView = remember(context, player, tunnelingEnabled) {
-        (if (tunnelingEnabled) {
+    // Default: hardware SurfaceView (most accurate colours / quality). With the zoom renderer on,
+    // non-tunneled playback renders through a TextureView so zoom/crop is GPU-composited and exact;
+    // a SurfaceView on a hardware video plane gets squeezed (not cropped) on some TVs when scaled
+    // past the screen edge. Tunneled playback always needs a SurfaceView.
+    val playerView = remember(context, player, tunnelingEnabled, useZoomRenderer) {
+        (if (tunnelingEnabled || !useZoomRenderer) {
             PlayerView(context)
         } else {
             android.view.LayoutInflater.from(context)
@@ -3332,6 +3337,7 @@ private fun PlayerControlsOverlay(
     onShowSubtitleDialog: () -> Unit,
     onShowSpeedDialog: () -> Unit,
     onToggleAspectRatio: () -> Unit,
+    onToggleZoomRenderer: () -> Unit = {},
     onSwitchPlayerEngine: () -> Unit,
     onReportPlaybackIssue: () -> Unit,
     onToggleMoreActions: () -> Unit,
@@ -3399,7 +3405,8 @@ private fun PlayerControlsOverlay(
                 more = onToggleMoreActions, external = onOpenInExternalPlayer, info = onShowStreamInfo,
                 stats = onTogglePlaybackStats, interaction = onResetHideTimer, hide = onHideControls,
                 party = { viewModel.onEvent(PlayerEvent.OnShowPartyPanel) },
-                subSync = { viewModel.onEvent(PlayerEvent.OnShowSubtitleDelayOverlay) }), reportCodeVisible)
+                subSync = { viewModel.onEvent(PlayerEvent.OnShowSubtitleDelayOverlay) },
+                renderer = onToggleZoomRenderer), reportCodeVisible)
         return
     }
     if (LocalV2Appearance.current != null) {
@@ -3412,7 +3419,8 @@ private fun PlayerControlsOverlay(
                 audio = onShowAudioDialog, subtitles = onShowSubtitleDialog, speed = onShowSpeedDialog,
                 aspect = onToggleAspectRatio, engine = requestEngineSwitch, report = onReportPlaybackIssue,
                 more = onToggleMoreActions, external = onOpenInExternalPlayer, info = onShowStreamInfo,
-                stats = onTogglePlaybackStats, interaction = onResetHideTimer, hide = onHideControls
+                stats = onTogglePlaybackStats, interaction = onResetHideTimer, hide = onHideControls,
+                renderer = onToggleZoomRenderer
             ), reportCodeVisible, playerBadges
         )
         return
@@ -3664,6 +3672,14 @@ private fun PlayerControlsOverlay(
                             iconPainter = customAspectPainter,
                             contentDescription = stringResource(R.string.cd_aspect_ratio),
                             onClick = onToggleAspectRatio,
+                            downFocusRequester = progressBarFocusRequester,
+                            onUpKey = onHideControls,
+                            onFocused = onResetHideTimer
+                        )
+                        ControlButton(
+                            icon = Icons.Default.ZoomIn,
+                            contentDescription = stringResource(R.string.cd_toggle_zoom_renderer),
+                            onClick = onToggleZoomRenderer,
                             downFocusRequester = progressBarFocusRequester,
                             onUpKey = onHideControls,
                             onFocused = onResetHideTimer

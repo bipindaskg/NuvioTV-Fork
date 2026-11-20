@@ -27,7 +27,10 @@ internal fun playerControlAvailability(
         add(PlayerControlAction.SUBTITLES)
         add(PlayerControlAction.SUB_SYNC)
     }
-    if (!state.tunnelingEnabled && !appliedTunneling) add(PlayerControlAction.ASPECT)
+    if (!state.tunnelingEnabled && !appliedTunneling) {
+        add(PlayerControlAction.ASPECT)
+        add(PlayerControlAction.RENDERER)
+    }
     if (reportsAvailable && state.playbackIssueReportsEnabled && state.playbackIssueReportStatus != PlaybackIssueReportStatus.Sending &&
         state.playbackIssueReportStatus != PlaybackIssueReportStatus.Sent) add(PlayerControlAction.REPORT)
 }

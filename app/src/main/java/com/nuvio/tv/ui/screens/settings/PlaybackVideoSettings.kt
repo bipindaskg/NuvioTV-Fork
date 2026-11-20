@@ -51,7 +51,8 @@ internal fun PlaybackVideoSection(
     settings: PlayerSettings,
     transparentLetterbox: Boolean,
     onUpdate: PlaybackSettingsUpdate,
-    onOpenDialog: (PlaybackDialog) -> Unit
+    onOpenDialog: (PlaybackDialog) -> Unit,
+    zoomRenderer: Boolean = false
 ) {
     val enabled = settings.playerPreference != PlayerPreference.EXTERNAL
     val displayCapabilities = rememberDisplayCapabilities()
@@ -63,6 +64,13 @@ internal fun PlaybackVideoSection(
         !displayCapabilities.supportsFrameRateSwitching) ||
         (settings.resolutionMatchingEnabled && !resolutionSwitchingSupported)
 
+    SettingsToggleRow(
+        title = stringResource(R.string.playback_zoom_renderer_title),
+        subtitle = stringResource(R.string.playback_zoom_renderer_sub),
+        checked = zoomRenderer,
+        onToggle = { onUpdate { setZoomRenderer(!zoomRenderer) } },
+        enabled = enabled
+    )
     SettingsToggleRow(
         title = stringResource(R.string.playback_dim_hdr_overlays),
         subtitle = stringResource(R.string.playback_dim_hdr_overlays_sub),

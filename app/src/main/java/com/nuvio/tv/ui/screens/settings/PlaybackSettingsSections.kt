@@ -58,6 +58,7 @@ internal fun PlaybackSettingsSections(
     onMemorySettingChanged: () -> Unit,
     onClearTorrentCache: () -> Unit,
     remoteButtons: RemoteButtonMap = RemoteButtonMap.DEFAULT,
+    zoomRenderer: Boolean = false,
     initialFocusRequester: FocusRequester? = null,
     onOpenConnectedServices: (() -> Unit)? = null,
     onShowControlLayoutEditor: (() -> Unit)? = null,
@@ -102,6 +103,7 @@ internal fun PlaybackSettingsSections(
                         playerSettings = playerSettings,
                         p2p = p2p,
                         transparentLetterbox = transparentLetterbox,
+                        zoomRenderer = zoomRenderer,
                         remoteButtons = remoteButtons,
                         onUpdate = onUpdate,
                         onOpenDialog = onOpenDialog,
@@ -124,6 +126,7 @@ private fun PlaybackSectionContent(
     playerSettings: PlayerSettings,
     p2p: P2pSettingsUi,
     transparentLetterbox: Boolean,
+    zoomRenderer: Boolean,
     remoteButtons: RemoteButtonMap,
     onUpdate: PlaybackSettingsUpdate,
     onOpenDialog: (PlaybackDialog) -> Unit,
@@ -166,7 +169,7 @@ private fun PlaybackSectionContent(
         }
         PlaybackSection.AUDIO -> PlaybackAudioSection(playerSettings, onUpdate, onOpenDialog)
         PlaybackSection.SUBTITLES -> PlaybackSubtitlesSection(playerSettings, onUpdate, onOpenDialog)
-        PlaybackSection.VIDEO -> PlaybackVideoSection(playerSettings, transparentLetterbox, onUpdate, onOpenDialog)
+        PlaybackSection.VIDEO -> PlaybackVideoSection(playerSettings, transparentLetterbox, onUpdate, onOpenDialog, zoomRenderer)
         PlaybackSection.BUFFER_NETWORK -> PlaybackBufferNetworkSection(playerSettings, onUpdate, onMemorySettingChanged)
         PlaybackSection.P2P -> PlaybackP2pSection(p2p, onUpdate, onOpenDialog, onClearTorrentCache)
     }
